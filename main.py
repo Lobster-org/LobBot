@@ -5,6 +5,9 @@ os library - to read the environment varibales stored in system.
 import os 
 import telebot #API implementation 
 from telebot import types
+from PyDictionary import PyDictionary
+import re
+
 
 BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
 
@@ -12,17 +15,24 @@ BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# Dictionary to store command descriptions
+commandDict = {
+    "/start": "Start the bot",
+    "/search /define": "Search for something",
+    "/help": "Display available commands"
+}
+
 #welcome function
-@bot.callback_query_handler(func=lambda call: call.data == 'start')
-def send_welcome(call):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+@bot.message_handler(commands=["start","hello"])
+def send_welcome(message):
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
     itembtn1 = types.KeyboardButton('Option 1')
     itembtn2 = types.KeyboardButton('Option 2')
     itembtn3 = types.KeyboardButton('Option 3')
 
     markup.add(itembtn1,itembtn2,itembtn3)
 
-    bot.send_message(call.message.chat.id, "Hello and welcome to (LOB)STER\nHow can I assist you today?",reply_markup = markup)
+    bot.reply_to(message, "Hello and welcome to (LOB)STER\nHow can I assist you today?",reply_markup = markup)
 
 #handler for option 1
 @bot.message_handler(func=lambda message: message.text == 'Option 1')
