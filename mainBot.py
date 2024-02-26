@@ -4,6 +4,7 @@ os library - to read the environment varibales stored in system.
 
 import os 
 import telebot #API implementation 
+import requests
 from telebot import types
 from PyDictionary import PyDictionary
 
@@ -48,25 +49,33 @@ def handle_option_two(message):
 def handle_option_three(message):
     bot.reply_to(message, "You selected option 3")
 
-#test
+
+
+# Function to get the definition from Urban Dictionary
+def get_urban_definition(term):
+    url = f"https://api.urbandictionary.com/v0/define?term={term}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        if data["list"]:
+            return data["list"][0]["definition"]
+    return None
+
 
 #search command
-@bot.message_handler(commands=["search","define"])
+@bot.message_handler(commands=["search"])
 
-# Handler for search queries
-@bot.message_handler(func=lambda message: message.text.startswith("/search","define"))
 def handle_search_query(message):
     # Here you can implement your search logic
     search_query = message.text.replace('/search','',1)
     # Perform search based on the query
     # For demonstration purposes, just echoing back the query
-    definitions = PyDictionary.meaning(search_query)
+    definitions = get_urban_definition(search_query)
     if not definitions:
         bot.send_message(message.chat.id,"Oopsie I found nothing, better luck next time!")
     else:
-        bot.send_message(message.chat.id, f"Definitions for '{search_query}':")
-        for key,value in definitions.items():
-            bot.send_message(message.chat.id,f"{key}:{value}")
+        bot.send_message(message.chat.id, f"Definitions for '{search_query}':\n{definitions}")
+        
 
 #handler for help
 @bot.message_handler(commands=["help"])
