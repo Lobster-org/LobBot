@@ -51,15 +51,13 @@ def handle_option_three(message):
 #test
 
 #search command
-@bot.message_handler(commands=["search"])
-def search_command(message):
-    bot.send_message(message.chat.id, "Please enter your search query:")
+@bot.message_handler(commands=["search","define"])
 
 # Handler for search queries
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(func=lambda message: message.text.startswith("/search","define"))
 def handle_search_query(message):
     # Here you can implement your search logic
-    search_query = message.text
+    search_query = message.text.replace('/search','',1)
     # Perform search based on the query
     # For demonstration purposes, just echoing back the query
     definitions = PyDictionary.meaning(search_query)
