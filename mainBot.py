@@ -9,6 +9,7 @@ from telebot import types
 from PyDictionary import PyDictionary
 
 
+
 BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
 
 #BOT_TOKEN = os.environ.get('BOT_TOKEN')
@@ -58,7 +59,10 @@ def get_urban_definition(term):
     if response.status_code == 200:
         data = response.json()
         if data["list"]:
-            return data["list"][0]["definition"]
+            #Return definitions and example if available
+            defintion = data["list"][0]["definition"]
+            example = data["list"][0]["example"]
+            return defintion, example
     return None
 
 
@@ -70,12 +74,15 @@ def handle_search_query(message):
     search_query = message.text.replace('/search','',1)
     # Perform search based on the query
     # For demonstration purposes, just echoing back the query
-    definitions = get_urban_definition(search_query)
+    definitions, example = get_urban_definition(search_query)
     if not definitions:
         bot.send_message(message.chat.id,"Oopsie I found nothing, better luck next time!")
     else:
-        bot.send_message(message.chat.id, f"Definitions for '{search_query}':\n{definitions}")
-        
+        bold_query = f'*{search_query}*'
+        respone_message = f"{bold_query}:\n{definitions}"
+        if example:
+            respone_message += f"\n\n{example}"
+        bot.send_message(message.chat.id, respone_message, parse_mode="MarkdownV2")
 
 #handler for help
 @bot.message_handler(commands=["help"])
