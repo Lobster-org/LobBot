@@ -23,6 +23,17 @@ commands = {
     "/help": "Display available commands"
 }
 
+keyboard = [
+    [
+        {"text": "Button 1", "callback_data": "button_1"},
+        {"text": "Button 2", "callback_data": "button_2"}
+    ],
+    [
+        {"text": "Button 3", "url": "https://example.com"},
+        {"text": "Button 4", "url": "https://example.com"}
+    ]
+]
+
 #welcome function
 @bot.message_handler(commands=["start","hello"])
 def send_welcome(message):
@@ -39,6 +50,7 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: message.text == 'Option 1')
 def handle_option_one(message):
     bot.reply_to(message, "You selected option 1")
+    send_custom_keyboard(message.chat.id)
 
 #handler for option 2
 @bot.message_handler(func=lambda message: message.text == 'Option 2')
@@ -50,6 +62,15 @@ def handle_option_two(message):
 def handle_option_three(message):
     bot.reply_to(message, "You selected option 3")
 
+
+# Function to send the keyboard
+def send_custom_keyboard(chat_id):
+    bot.send_chat_action(chat_id,'typing')
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    for row in keyboard:
+        buttons = [types.InlineKeyboardButton(text=btn["text"], callback_data=btn.get("callback_data"), url=btn.get("url")) for btn in row]
+        markup.add(*buttons)
+    bot.send_message(chat_id,"Your options are:",reply_markup=markup)
 
 
 # Function to get the definition from Urban Dictionary
@@ -63,26 +84,44 @@ def get_urban_definition(term):
             defintion = data["list"][0]["definition"]
             example = data["list"][0]["example"]
             return defintion, example
-    return None
+    return None, None
 
 
-#search command
-@bot.message_handler(commands=["search"])
-
-def handle_search_query(message):
-    # Here you can implement your search logic
-    search_query = message.text.replace('/search','',1)
-    # Perform search based on the query
-    # For demonstration purposes, just echoing back the query
-    definitions, example = get_urban_definition(search_query)
-    if not definitions:
-        bot.send_message(message.chat.id,"Oopsie I found nothing, better luck next time!")
+#handler for /search reply
+@bot.message_handler(func=lambda message: message.text.lower() == '/search' and message.reply_to_message is not None)
+def handle_search_reply(message):
+    reply_message = message.reply_to_message
+    if reply_message:
+        search_word = message.reply_to_message.text.strip()
+        definition,example = get_urban_definition(search_word)
+        if definition is None:
+            bot.send_message(message.chat.id,"Oopsie I found nothing, better luck next time!")
+        else:
+            respone_message = f"{search_word}:\n{definition}"
+            if example:
+                respone_message += f"\n\n{example}"
+            bot.send_message(message.chat.id, respone_message)
     else:
-        bold_query = f'*{search_query}*'
-        respone_message = f"{bold_query}:\n{definitions}"
-        if example:
-            respone_message += f"\n\n{example}"
-        bot.send_message(message.chat.id, respone_message, parse_mode="MarkdownV2")
+        bot.send_message(message.chat.id,"Yoo stop messing around and find something to search")
+
+# Search command
+@bot.message_handler(commands=["search"])
+def handle_search_query(message):
+    if len(message.text.split()) == 1:
+        # User only entered /search
+        bot.send_message(message.chat.id, "What are you trying to look up stoopid\nHere is a quick tutorial:\nuse /search word or reply on a message with /search")
+    else:
+        # Here you can implement your search logic
+        search_query = telebot.util.extract_arguments(message.text)
+        # Perform search based on the query
+        definitions, example = get_urban_definition(search_query)
+        if not definitions:
+            bot.send_message(message.chat.id, "Oopsie I found nothing, better luck next time!")
+        else:
+            respone_message = f"{search_query}:\n{definitions}"
+            if example:
+                respone_message += f"\n\n{example}"
+            bot.send_message(message.chat.id, respone_message)
 
 #handler for help
 @bot.message_handler(commands=["help"])
