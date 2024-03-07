@@ -7,7 +7,8 @@ def help_command(bot: TeleBot,message):
     commands = {
     "/start": "Start the bot",
     "/search": "Search for something",
-    "/help": "Display available commands"
+    "/help": "Display available commands",
+    "/purge": "Delete messages"
     }
     
     for command, description in commands.items():

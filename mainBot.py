@@ -10,10 +10,11 @@ from PyDictionary import PyDictionary
 from telebot import apihelper
 
 #function imports
+from functions.status import is_admin, is_bot_admin
 from functions.purge import handle_purge
 from functions.help import help_command
-from functions.search import search_command
-from functions.search import search_reply
+from functions.search import search_command,search_reply
+from functions.status import get_user_status
 
 BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
 
@@ -83,7 +84,7 @@ def handle_search_query(message):
         bot.send_message(message.chat.id, "What are you trying to look up stoopid\nHere is a quick tutorial:\nuse /search word or reply on a message with /search")
     else:
         search_command(bot,message)
-        
+
 # Handler for /purge command
 @bot.message_handler(commands=["purge"])
 def handle_purge_commands(message):
@@ -93,6 +94,16 @@ def handle_purge_commands(message):
 @bot.message_handler(commands=["help"])  
 def handle_help(message):
     help_command(bot,message)
+
+@bot.message_handler(commands = ["status"])
+def get_stat(message):
+    if message.reply_to_message:
+        user_id = message.reply_to_message.from_user.id
+        chat_id = message.chat.id
+        status = get_user_status(bot,chat_id,user_id)
+        bot.reply_to(message,f"The user's status is: {status}")
+    else:
+        bot.reply_to(message,"Reply to a message to check user status")
 
 
 #to keep the bot running
