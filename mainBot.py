@@ -7,8 +7,13 @@ import telebot #API implementation
 import requests
 from telebot import types
 from PyDictionary import PyDictionary
+from telebot import apihelper
 
-
+#function imports
+from functions.purge import handle_purge
+from functions.help import help_command
+from functions.search import search_command
+from functions.search import search_reply
 
 BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
 
@@ -16,12 +21,6 @@ BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Dictionary to store command descriptions
-commands = {
-    "/start": "Start the bot",
-    "/search": "Search for something",
-    "/help": "Display available commands"
-}
 
 keyboard = [
     [
@@ -72,64 +71,29 @@ def send_custom_keyboard(chat_id):
         markup.add(*buttons)
     bot.send_message(chat_id,"Your options are:",reply_markup=markup)
 
-
-# Function to get the definition from Urban Dictionary
-def get_urban_definition(term):
-    url = f"https://api.urbandictionary.com/v0/define?term={term}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        if data["list"]:
-            #Return definitions and example if available
-            defintion = data["list"][0]["definition"]
-            example = data["list"][0]["example"]
-            return defintion, example
-    return None, None
-
-
 #handler for /search reply
 @bot.message_handler(func=lambda message: message.text.lower() == '/search' and message.reply_to_message is not None)
 def handle_search_reply(message):
-    reply_message = message.reply_to_message
-    if reply_message:
-        search_word = message.reply_to_message.text.strip()
-        definition,example = get_urban_definition(search_word)
-        if definition is None:
-            bot.send_message(message.chat.id,"Oopsie I found nothing, better luck next time!")
-        else:
-            respone_message = f"{search_word}:\n{definition}"
-            if example:
-                respone_message += f"\n\n{example}"
-            bot.send_message(message.chat.id, respone_message)
-    else:
-        bot.send_message(message.chat.id,"Yoo stop messing around and find something to search")
+    search_reply(bot,message)
 
 # Search command
 @bot.message_handler(commands=["search"])
 def handle_search_query(message):
     if len(message.text.split()) == 1:
-        # User only entered /search
         bot.send_message(message.chat.id, "What are you trying to look up stoopid\nHere is a quick tutorial:\nuse /search word or reply on a message with /search")
     else:
-        # Here you can implement your search logic
-        search_query = telebot.util.extract_arguments(message.text)
-        # Perform search based on the query
-        definitions, example = get_urban_definition(search_query)
-        if not definitions:
-            bot.send_message(message.chat.id, "Oopsie I found nothing, better luck next time!")
-        else:
-            respone_message = f"{search_query}:\n{definitions}"
-            if example:
-                respone_message += f"\n\n{example}"
-            bot.send_message(message.chat.id, respone_message)
+        search_command(bot,message)
+        
+# Handler for /purge command
+@bot.message_handler(commands=["purge"])
+def handle_purge_commands(message):
+    handle_purge(bot,message)
 
 #handler for help
-@bot.message_handler(commands=["help"])
-def help_command(message):
-    # Generate help message with clickable commands
-    help_text = "Available commands:\n"
-    for command, description in commands.items():
-        help_text += f"<b>{command}</b>: {description}\n"
-    bot.send_message(message.chat.id, help_text, parse_mode="HTML")
+@bot.message_handler(commands=["help"])  
+def handle_help(message):
+    help_command(bot,message)
+
+
 #to keep the bot running
 bot.infinity_polling()
