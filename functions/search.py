@@ -1,5 +1,6 @@
 import requests
 from telebot import TeleBot
+from telebot.types import Message
 
 
 # Function to get the definition from Urban Dictionary
@@ -42,3 +43,11 @@ def search_reply(bot: TeleBot, message):
             bot.send_message(message.chat.id, respone_message)
     else:
         bot.send_message(message.chat.id,"Yoo stop messing around and find something to search")
+
+
+def search_query(bot: TeleBot, message):
+    if len(message.text.split())==1:
+        modified_text = "/search " + message.text
+        message.text = modified_text
+        search_command(bot,message)
+
