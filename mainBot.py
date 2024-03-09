@@ -10,7 +10,7 @@ from PyDictionary import PyDictionary
 from telebot import apihelper
 
 #function imports
-from functions.status import is_admin, is_bot_admin
+
 from functions.purge import handle_purge
 from functions.help import help_command
 from functions.search import search_command,search_reply, search_query
