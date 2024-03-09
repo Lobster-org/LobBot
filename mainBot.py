@@ -13,9 +13,10 @@ from telebot import apihelper
 from functions.status import is_admin, is_bot_admin
 from functions.purge import handle_purge
 from functions.help import help_command
-from functions.search import search_command,search_reply
+from functions.search import search_command,search_reply, search_query
 from functions.status import get_user_status
-
+from functions.startup import send_welcome
+from functions.reddit import handle_lore_command
 BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
 
 #BOT_TOKEN = os.environ.get('BOT_TOKEN')
@@ -25,8 +26,8 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 keyboard = [
     [
-        {"text": "Button 1", "callback_data": "button_1"},
-        {"text": "Button 2", "callback_data": "button_2"}
+        {"text": "status", "callback_data": "status"},
+        {"text": "search", "callback_data": "/search"}
     ],
     [
         {"text": "Button 3", "url": "https://example.com"},
@@ -34,22 +35,23 @@ keyboard = [
     ]
 ]
 
+# Function to send the keyboard
+def send_custom_keyboard(chat_id):
+    bot.send_chat_action(chat_id,'typing')
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    for row in keyboard:
+        buttons = [types.InlineKeyboardButton(text=btn["text"], callback_data=btn.get("callback_data"), url=btn.get("url")) for btn in row]
+        markup.add(*buttons)
+    bot.send_message(chat_id,"Your options are:",reply_markup=markup)
+
 #welcome function
 @bot.message_handler(commands=["start","hello"])
-def send_welcome(message):
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    itembtn1 = types.KeyboardButton('Option 1')
-    itembtn2 = types.KeyboardButton('Option 2')
-    itembtn3 = types.KeyboardButton('Option 3')
-
-    markup.add(itembtn1,itembtn2,itembtn3)
-
-    bot.reply_to(message, "Hello and welcome to (LOB)STER\nHow can I assist you today?",reply_markup = markup)
+def handle_start(message):
+    send_welcome(bot,message)
 
 #handler for option 1
-@bot.message_handler(func=lambda message: message.text == 'Option 1')
+@bot.message_handler(func=lambda message: message.text == 'Help')
 def handle_option_one(message):
-    bot.reply_to(message, "You selected option 1")
     send_custom_keyboard(message.chat.id)
 
 #handler for option 2
@@ -62,15 +64,17 @@ def handle_option_two(message):
 def handle_option_three(message):
     bot.reply_to(message, "You selected option 3")
 
+# Handler for callback queries
+@bot.callback_query_handler(func=lambda call: call.data == "/search")
+def handle_search_callback(call):
+    bot.send_message(call.message.chat.id,"Type in what you would like to search")
+    bot.register_next_step_handler(call.message, handle_search_input_from_callback)
 
-# Function to send the keyboard
-def send_custom_keyboard(chat_id):
-    bot.send_chat_action(chat_id,'typing')
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    for row in keyboard:
-        buttons = [types.InlineKeyboardButton(text=btn["text"], callback_data=btn.get("callback_data"), url=btn.get("url")) for btn in row]
-        markup.add(*buttons)
-    bot.send_message(chat_id,"Your options are:",reply_markup=markup)
+def handle_search_input_from_callback(message):
+    search = message.text
+    bot.send_message(message.chat.id,f"searching for: {search}")
+    search_query(bot,message)
+
 
 #handler for /search reply
 @bot.message_handler(func=lambda message: message.text.lower() == '/search' and message.reply_to_message is not None)
@@ -104,7 +108,15 @@ def get_stat(message):
         bot.reply_to(message,f"The user's status is: {status}")
     else:
         bot.reply_to(message,"Reply to a message to check user status")
+    
+#reddit post handler
+@bot.message_handler(commands = ["rd"])
+def post(message):
+    parts = message.text.split()
+    if len(parts)>1:
+        subreddit_name = parts[1]
+        handle_lore_command(bot,message,subreddit_name)
+    else:
+        handle_lore_command(bot, message)
 
-
-#to keep the bot running
 bot.infinity_polling()
