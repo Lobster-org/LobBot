@@ -9,10 +9,9 @@ def searchMovie(moive_name):
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, "html.parser")
-        print("movies")
         movie_title = [title.text.strip() for title in soup.find_all('h2',class_='film-name')]
         top_5_movies = []
-        for i in range(min(5,len(movie_title))):
+        for i in range(len(movie_title)):
             top_5_movies.append(f"{i+1}. {movie_title[i]}")
         
         print(top_5_movies)
@@ -20,11 +19,12 @@ def searchMovie(moive_name):
     else:
         return None
 
+
 def send_movie(bot: TeleBot, message):
     if len(message.text.split()) == 1:
         bot.reply_to(message, "Please provide the name of the movie after /movie")
     else:
-        movie_name = " ".join(message.text.split(maxsplit = 1)[1:])
+        movie_name = "-".join(message.text.split(" ")[1:])
         print(movie_name)
         movie_list = searchMovie(movie_name)
         if movie_list:
