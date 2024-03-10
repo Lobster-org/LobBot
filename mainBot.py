@@ -7,7 +7,7 @@ import telebot #API implementation
 import requests
 from telebot import types
 from PyDictionary import PyDictionary
-from telebot import apihelper
+
 
 #function imports
 
@@ -17,6 +17,8 @@ from functions.search import search_command,search_reply, search_query
 from functions.status import get_user_status
 from functions.startup import send_welcome
 from functions.reddit import handle_lore_command
+from functions.movie import send_movie
+
 BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
 
 #BOT_TOKEN = os.environ.get('BOT_TOKEN')
@@ -119,4 +121,8 @@ def post(message):
     else:
         handle_lore_command(bot, message)
 
+@bot.message_handler(commands=["movie"])
+def handle_movie(message):
+    send_movie(bot, message)
+    
 bot.infinity_polling()
