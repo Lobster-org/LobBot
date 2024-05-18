@@ -1,5 +1,6 @@
 
 import random
+from telebot import TeleBot
 
 def toss(bot:TeleBot,message):
     lst = ['Heads','Tails']
