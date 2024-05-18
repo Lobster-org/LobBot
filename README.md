@@ -1,4 +1,4 @@
-# -LOB-STER
+# Project-LOB-STER
 ## Prerequistes
 1. Python 3.12
 2. A telegram bot token
@@ -8,7 +8,7 @@
 ## How to run:
 1. Clone the repo
 2. Open terminal
-3. Go to project directory: cd ```C:\Users\username\Documents\GitHub\-LOB-STER>```
+3. Go to project directory: cd ```C:\Users\username\Documents\GitHub\LobBot>```
 4. Now inside the project directory run the following command: ``` pip install -r requirements.txt ```
 5. Open your prefered IDE(VSCode,PyCharm)
 6. create a ```.env``` file inside your project directory
