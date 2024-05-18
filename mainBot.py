@@ -8,7 +8,7 @@ import requests
 from telebot import types
 from PyDictionary import PyDictionary
 from telebot.types import ChatMember
-
+from dotenv import load_dotenv
 
 #function imports
 from functions.purge import handle_purge
@@ -24,9 +24,10 @@ from functions.games import handle_rps_choice,handle_rps_command
 
 
 
-BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
-
-#BOT_TOKEN = os.environ.get('BOT_TOKEN')
+#BOT_TOKEN = os.getenv("7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE")
+load_dotenv()
+BOT_TOKEN = os.environ.get('TOKEN')
+print(BOT_TOKEN)
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
