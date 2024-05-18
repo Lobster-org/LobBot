@@ -7,23 +7,29 @@ import telebot #API implementation
 import requests
 from telebot import types
 from PyDictionary import PyDictionary
+from telebot.types import ChatMember
 
 
 #function imports
-
 from functions.purge import handle_purge
 from functions.help import help_command
 from functions.search import search_command,search_reply, search_query
 from functions.status import get_user_status
 from functions.startup import send_welcome
 from functions.reddit import handle_lore_command
-from functions.movie import send_movie
+from functions.movie import send_movie,send_anime
+from functions.whisper import send_whisper
+from functions.toss import toss, ask
+from functions.games import handle_rps_choice,handle_rps_command
+
+
 
 BOT_TOKEN = "7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE"
 
 #BOT_TOKEN = os.environ.get('BOT_TOKEN')
 
 bot = telebot.TeleBot(BOT_TOKEN)
+
 
 
 keyboard = [
@@ -124,5 +130,56 @@ def post(message):
 @bot.message_handler(commands=["movie"])
 def handle_movie(message):
     send_movie(bot, message)
-    
+
+@bot.message_handler(commands=["anime"])
+def handle_anime(message):
+    send_anime(bot,message)
+
+@bot.message_handler(commands = ["whisper"])
+def handle_whisper(message):
+    send_whisper(bot,message)
+
+@bot.message_handler(commands= ['toss'])
+def handle_toss(message):
+    toss(bot,message)
+
+@bot.message_handler(commands = ['ask'])
+def handle_ask(message):
+    ask(bot,message)
+
+@bot.message_handler(commands=['rps'])
+def handle_rps(message):
+    handle_rps_command(message,bot)
+
+@bot.message_handler(func=lambda message: message.text.lower() in ['rock', 'paper', 'scissors'] and message.chat.type == 'private')
+def rps_choice(message):
+    handle_rps_choice(message,bot)
+
+channel_message_counts = {}
+
+def count_messages(channel_id):
+    global channel_message_counts
+    if channel_id not in channel_message_counts:
+        channel_message_counts[channel_id] = 0
+    channel_message_counts[channel_id] += 1
+@bot.message_handler(func=lambda message: message.chat.id == -1002114093636)
+def handle_channel_mesasges(message):
+    count_messages(-1002114093636)
+
+@bot.message_handler(commands=['count'])
+def handle_count_command(message):
+    global channel_message_counts
+    channel_id = -1002114093636
+    if channel_id in channel_message_counts:
+        total_messages = channel_message_counts[channel_id]
+        bot.reply_to(message,f"total:{total_messages}")
+    else:
+        bot.reply_to(message,"No mesasges found")
+
+"""@bot.message_handler(commands=["music"])
+def music(message):
+    music_command(message)"""
+
+
 bot.infinity_polling()
+
