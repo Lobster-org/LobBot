@@ -8,10 +8,12 @@
 ## How to run:
 1. Clone the repo
 2. Open terminal
-3. Go to repo directory: cd ```C:\Users\username\Documents\GitHub\-LOB-STER>```
-4. Now inside the repo directory run the following command: ``` pip install -r requirements.txt ```
+3. Go to project directory: cd ```C:\Users\username\Documents\GitHub\-LOB-STER>```
+4. Now inside the project directory run the following command: ``` pip install -r requirements.txt ```
 5. Open your prefered IDE(VSCode,PyCharm)
-6. Run mainBot.py
+6. create a ```.env``` file inside your project directory
+     - inside that file put the following line: ```TOKEN = "Your telegram bot token that you obtained from botfather"```
+8. Run mainBot.py
 
 
 # For devs only:
