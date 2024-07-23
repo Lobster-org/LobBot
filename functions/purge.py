@@ -16,11 +16,11 @@ def handle_purge(bot: TeleBot, message):
                     bot.delete_message(chat_id, msg_id)
                 
                 bot.delete_message(chat_id,message.reply_to_message.message_id)
-                bot.reply_to(message,"I make it disappear")
+                bot.reply_to(message,"Sit back and relax as I make it disappear")
             else:
-                bot.reply_to(message,"I am sori but you need to be an admin or make me an admin to use /purge")
+                bot.reply_to(message,"You need to be an admin or make me an admin to use /purge")
         except Exception as e:
-            bot.reply_to(message,f"So it no work. Here is why:{e}")
+            bot.reply_to(message,f"Failed to delete messages!!")
     else:
         bot.reply_to(message,"Reply to a message with /purge and watch some magic happen:)")
 

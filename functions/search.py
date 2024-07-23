@@ -22,7 +22,7 @@ def search_command(bot: TeleBot,message):
     # Perform search based on the query
     definitions, example = get_urban_definition(search_query)
     if not definitions:
-        bot.send_message(message.chat.id, "Oopsie I found nothing, better luck next time!")
+        bot.send_message(message.chat.id, "I found nothing :(, better luck next time!")
     else:
         respone_message = f"{search_query}:\n{definitions}"
         if example:
@@ -35,14 +35,14 @@ def search_reply(bot: TeleBot, message):
         search_word = message.reply_to_message.text.strip()
         definition,example = get_urban_definition(search_word)
         if definition is None:
-            bot.reply_to(message,"Oopsie I found nothing, better luck next time!")
+            bot.reply_to(message,"I found nothing :(, better luck next time!")
         else:
             respone_message = f"{search_word}:\n{definition}"
             if example:
                 respone_message += f"\n\n{example}"
             bot.send_message(message.chat.id, respone_message)
     else:
-        bot.send_message(message.chat.id,"Yoo stop messing around and find something to search")
+        bot.send_message(message.chat.id,"Stop messing around and find something to search")
 
 
 def search_query(bot: TeleBot, message):
