@@ -8,7 +8,7 @@ import requests
 from telebot import types
 from PyDictionary import PyDictionary
 from telebot.types import ChatMember
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 #function imports
 from functions.purge import handle_purge
@@ -22,16 +22,11 @@ from functions.whisper import send_whisper
 from functions.toss import toss, ask
 from functions.games import handle_rps_choice,handle_rps_command
 
-
-  
-#BOT_TOKEN = os.getenv("7161679846:AAHt4xWulza1OSvtTYaaXN58E0YO37uE4cE")
-# load_dotenv()
+# Load .env content  
+load_dotenv()
 BOT_TOKEN = os.environ.get('TOKEN')
-print(BOT_TOKEN)
 
 bot = telebot.TeleBot(BOT_TOKEN)
-
-
 
 keyboard = [
     [
