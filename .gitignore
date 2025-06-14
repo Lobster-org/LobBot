@@ -109,3 +109,9 @@ tempCodeRunnerFile.py
 
 #__pycache__
 **/__pycache__/
+
+# Stored session
+*.session
+
+# DS Store
+*.DS_Store
