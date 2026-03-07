@@ -1,11 +1,15 @@
 from pyrogram import Client, filters
+from pyrogram.handlers import MessageHandler
 from config import BOT_TOKEN, API_ID, API_HASH, SESSION_STRING
 
 # Handlers
 from handlers import urban
 from games import rps
+from chatbot_llm import chatbot_reply_llm
 
 app = Client("LobBot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH, session_string=SESSION_STRING)
+
+app.add_handler(MessageHandler(chatbot_reply_llm, filters.reply & filters.text))
 
 @app.on_message(filters.private & filters.command("start"))
 def private_chat_handler(client, message):
