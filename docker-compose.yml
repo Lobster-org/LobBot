@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: lobbot-mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: lobadmin
+      MONGO_INITDB_ROOT_PASSWORD: secret123
+      MONGO_INITDB_DATABASE: lobbot
+    volumes:
+      - mongo_data:/data/db
+
+  bot:
+    build:
+      context: .
+      dockerfile: DockerFile
+    container_name: lobbot-bot
+    restart: always
+    depends_on:
+      - mongo
+    environment:
+      # MongoDB connection string
+      MONGO_URL: "mongodb://lobadmin:secret123@mongo:27017/lobbot?authSource=admin"
+      DB_NAME: "lobbot"
+
+      # Telegram credentials
+      API_ID: "${API_ID}"
+      API_HASH: "${API_HASH}"
+      BOT_TOKEN: "${BOT_TOKEN}"
+
+      LLM_MODEL: "/models/qwen2.5-1.5b-instruct.Q4_K_M.gguf"
+      LLM_CTX: "2048"
+      LLM_THREADS: "0"
+      LLM_TEMP: "0.6"
+      LLM_MAX_TOKENS: "256"
+    volumes:
+      - .:/app
+      - ./models:/models
+    working_dir: /app
+    # command: ["python", ".bot/main.py"]
+
+volumes:
+  mongo_data:
