@@ -82,6 +82,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# LLM Models
+models/
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -112,6 +115,7 @@ tempCodeRunnerFile.py
 
 # Stored session
 *.session
+*.session-journal
 
 # DS Store
 *.DS_Store
