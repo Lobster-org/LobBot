@@ -1,0 +1,3 @@
+USERS = "users"
+
+GROUPS = "groups"
