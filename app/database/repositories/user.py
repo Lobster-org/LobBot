@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 
 from app.database.collections import USERS
@@ -24,6 +25,24 @@ class UserRepository(BaseRepository):
         return await self.find_one(
             {
                 "telegram_id": telegram_id
+            }
+        )
+
+    async def get_user_by_username(
+        self,
+        username: str,
+    ):
+        normalized = username.lstrip("@")
+
+        if not normalized:
+            return None
+
+        return await self.find_one(
+            {
+                "username": {
+                    "$regex": f"^{re.escape(normalized)}$",
+                    "$options": "i",
+                }
             }
         )
 
@@ -56,19 +75,43 @@ class UserRepository(BaseRepository):
         first_name: str | None,
         last_name: str | None = None,
     ):
-        user = await self.get_user(
-            telegram_id
-        )
-
-        if user:
-            return user
-
-        return await self.create_user(
+        user, _ = await self.register_user(
             telegram_id=telegram_id,
             username=username,
             first_name=first_name,
             last_name=last_name,
         )
+
+        return user
+
+    async def register_user(
+        self,
+        telegram_id: int,
+        username: str | None,
+        first_name: str | None,
+        last_name: str | None = None,
+    ) -> tuple[dict, bool]:
+        now = datetime.now(timezone.utc)
+        result = await self.update_one(
+            {"telegram_id": telegram_id},
+            {
+                "$set": {
+                    "username": username,
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "last_seen": now,
+                },
+                "$setOnInsert": {
+                    "telegram_id": telegram_id,
+                    "created_at": now,
+                    "preferences": {},
+                },
+            },
+            upsert=True,
+        )
+        user = await self.get_user(telegram_id)
+
+        return user, result.upserted_id is not None
 
     async def update_last_seen(
         self,
