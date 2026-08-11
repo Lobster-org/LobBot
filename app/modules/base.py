@@ -10,7 +10,7 @@ class BaseModule(ABC):
     core: bool = False
 
     @abstractmethod
-    async def setup(self, dispatcher):
+    async def setup(self, container, dispatcher):
         """
         Register commands,
         handlers, listeners.
@@ -18,14 +18,14 @@ class BaseModule(ABC):
         pass
 
 
-    async def startup(self):
+    async def startup(self, container):
         """
         Runs when module loads.
         """
         pass
 
 
-    async def shutdown(self):
+    async def shutdown(self, container):
         """
         Runs when bot shuts down.
         """

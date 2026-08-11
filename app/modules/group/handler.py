@@ -1,7 +1,7 @@
 from aiogram import Router
 from aiogram.types import ChatMemberUpdated
 
-from app.database.mongodb import mongodb
+from app.core.container import container
 from app.services.user_service import UserService
 
 
@@ -25,7 +25,10 @@ async def bot_membership_changed(
     }:
         return
 
-    database = mongodb.get_database()
+    database = container.database
+
+    if database is None:
+        raise RuntimeError("Database is not initialized")
 
     service = UserService(
         database

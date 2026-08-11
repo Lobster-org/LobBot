@@ -1,4 +1,4 @@
-from app.database.mongodb import mongodb
+from app.core.container import container
 from app.services.module_service import (
     ModuleService,
 )
@@ -6,7 +6,12 @@ from app.services.module_service import (
 
 async def is_module_enabled(group_id: int, module_name: str) -> bool:
 
-    database = mongodb.get_database()
+    database = container.database
+
+    if database is None:
+        raise RuntimeError(
+            "Module context used before application startup"
+        )
 
     service = ModuleService(
         database

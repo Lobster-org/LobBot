@@ -9,5 +9,5 @@ class HelpModule(BaseModule):
     enabled_by_default = True
     core = True
 
-    async def setup(self, dispatcher):
+    async def setup(self, container, dispatcher):
         dispatcher.include_router(router)
