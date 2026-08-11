@@ -10,6 +10,7 @@ from app.modules.moderation.models.punishment import (
     PunishmentType,
 )
 from app.modules.moderation.repositories.moderation_repository import (
+    AutomodRepository,
     ModerationRepository,
 )
 
@@ -43,6 +44,12 @@ class Collection:
         self.documents.append(saved)
         return SimpleNamespace(inserted_id=saved["_id"])
 
+    async def find_one(self, query):
+        for document in self.documents:
+            if all(document.get(key) == value for key, value in query.items()):
+                return document
+        return None
+
     def find(self, query):
         self.find_query = query
         return Cursor(list(self.documents))
@@ -59,6 +66,12 @@ class Collection:
         self.update_calls.append((query, update, {"upsert": upsert}))
         return SimpleNamespace(modified_count=1)
 
+    async def count_documents(self, query):
+        return len(self.documents)
+
+    async def update_many(self, query, update):
+        return SimpleNamespace(modified_count=len(self.documents))
+
 
 class Database:
     def __init__(self, collection):
@@ -66,6 +79,51 @@ class Database:
 
     def __getitem__(self, name):
         return self.collection
+
+
+@pytest.mark.asyncio
+async def test_repository_persists_and_queries_warnings():
+    collection = Collection()
+    repository = ModerationRepository(Database(collection))
+    action = Punishment(
+        chat_id=-100,
+        user_id=10,
+        moderator_id=20,
+        action=PunishmentType.WARN,
+        reason="spam",
+        created_at=datetime.now(timezone.utc),
+    )
+
+    await repository.create(action)
+    warnings = await repository.get_warnings(-100, 10)
+
+    assert warnings[0].reason == "spam"
+    assert collection.find_query["action"] == "warn"
+    assert await repository.count_warnings(-100, 10) == 1
+
+
+@pytest.mark.asyncio
+async def test_automod_repository_uses_nested_group_settings():
+    collection = Collection()
+    collection.documents.append(
+        {
+            "telegram_id": -100,
+            "settings": {
+                "moderation": {"automod": {"enabled": True}}
+            },
+        }
+    )
+    repository = AutomodRepository(Database(collection))
+
+    assert await repository.get_config(-100) == {"enabled": True}
+    await repository.set_config(-100, {"enabled": False})
+
+    _, update, _ = collection.update_calls[0]
+    assert update == {
+        "$set": {
+            "settings.moderation.automod": {"enabled": False}
+        }
+    }
 
 
 @pytest.mark.asyncio

@@ -41,6 +41,32 @@ class Repository:
         self.actions.append(action)
         return action
 
+    async def get_warnings(self, chat_id, user_id):
+        return [
+            item
+            for item in self.actions
+            if item.chat_id == chat_id
+            and item.user_id == user_id
+            and item.action == PunishmentType.WARN
+            and item.status == PunishmentStatus.ACTIVE
+        ]
+
+    async def count_warnings(self, chat_id, user_id):
+        return len(await self.get_warnings(chat_id, user_id))
+
+    async def remove_warning(self, chat_id, warning_id, removed_by):
+        for item in self.actions:
+            if item.id == warning_id and item.chat_id == chat_id:
+                item.status = PunishmentStatus.REMOVED
+                return item
+        return None
+
+    async def resolve_warnings(self, chat_id, user_id, resolved_by):
+        warnings = await self.get_warnings(chat_id, user_id)
+        for item in warnings:
+            item.status = PunishmentStatus.EXPIRED
+        return len(warnings)
+
     async def remove_active_action(
         self, chat_id, user_id, action, removed_by
     ):
@@ -111,11 +137,32 @@ def build_service():
 def test_moderator_permissions_include_all_moderation_actions():
     permissions = ROLE_PERMISSIONS[Role.MODERATOR]
     assert {
+        Permission.WARN_USERS,
         Permission.MUTE_USERS,
-        Permission.BAN_USERS,
         Permission.PURGE_MESSAGES,
         Permission.VIEW_MOD_LOGS,
     } <= permissions
+    assert Permission.BAN_USERS not in permissions
+
+
+@pytest.mark.asyncio
+async def test_manual_warning_creation_listing_and_removal():
+    service, _, _, bus = build_service()
+    events = []
+
+    async def record(event):
+        events.append(event.name)
+
+    from app.modules.moderation.events import WARNING_CREATED
+
+    bus.subscribe(WARNING_CREATED, record)
+    warning = await service.warn(-100, 10, 20, "spam")
+
+    assert await service.warning_count(-100, 10) == 1
+    assert await service.warnings(-100, 10) == [warning]
+    assert await service.remove_warning(-100, warning.id, 20) is warning
+    assert await service.warning_count(-100, 10) == 0
+    assert events == [WARNING_CREATED]
 
 
 @pytest.mark.asyncio
@@ -170,6 +217,31 @@ async def test_mute_records_expiration_and_emits_event():
     assert action.expires_at >= before + timedelta(seconds=299)
     assert punishments.muted[0][:2] == (-100, 10)
     assert events[0].payload["action"] == "mute"
+
+
+@pytest.mark.asyncio
+async def test_manual_unmute_closes_mute_and_records_action():
+    service, repository, punishments, bus = build_service()
+    mute = await service.mute(-100, 10, 20, 300, "flood")
+    events = []
+
+    async def record(event):
+        events.append((event.name, event.payload["action"]))
+
+    for event_name in (ACTION_REMOVED, ACTION_CREATED, USER_UNMUTED):
+        bus.subscribe(event_name, record)
+
+    unmute = await service.unmute(-100, 10, 20)
+
+    assert punishments.unmuted == [(-100, 10)]
+    assert mute.status == PunishmentStatus.REMOVED
+    assert unmute.action == PunishmentType.UNMUTE
+    assert unmute in repository.actions
+    assert events == [
+        (ACTION_REMOVED, "mute"),
+        (ACTION_CREATED, "unmute"),
+        (USER_UNMUTED, "unmute"),
+    ]
 
 
 @pytest.mark.asyncio

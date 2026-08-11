@@ -128,7 +128,7 @@ async def test_custom_moderator_has_moderation_not_module_permission():
         CHAT_ID,
         3,
         Permission.BAN_USERS,
-    ) is True
+    ) is False
     assert await service.has_permission(
         CHAT_ID,
         3,
@@ -215,12 +215,18 @@ async def test_permission_filter_allows_and_denies():
     required = PermissionRequired(
         Permission.MANAGE_MODULES
     )
+    replies = []
+
+    async def reply(text):
+        replies.append(text)
+
     message = SimpleNamespace(
         chat=SimpleNamespace(
             id=CHAT_ID,
             type="supergroup",
         ),
         from_user=SimpleNamespace(id=7),
+        reply=reply,
     )
 
     allowed = FilterPermissionService(True)
@@ -231,6 +237,9 @@ async def test_permission_filter_allows_and_denies():
     assert allowed.calls == [
         (CHAT_ID, 7, Permission.MANAGE_MODULES)
     ]
+    assert replies == [
+        "⛔ You don't have permission to use this command."
+    ]
 
 
 async def test_permission_filter_rejects_private_chat_cleanly():
@@ -238,10 +247,17 @@ async def test_permission_filter_rejects_private_chat_cleanly():
         Permission.MANAGE_MODULES
     )
     service = FilterPermissionService(True)
+    replies = []
+
+    async def reply(text):
+        replies.append(text)
+
     message = SimpleNamespace(
         chat=SimpleNamespace(id=7, type="private"),
         from_user=SimpleNamespace(id=7),
+        reply=reply,
     )
 
     assert await required(message, service) is False
     assert service.calls == []
+    assert replies == ["This command can only be used in a group."]
