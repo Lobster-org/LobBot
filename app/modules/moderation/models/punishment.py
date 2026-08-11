@@ -8,6 +8,7 @@ class PunishmentType(str, Enum):
     WARN = "warn"
     MUTE = "mute"
     UNMUTE = "unmute"
+    KICK = "kick"
     BAN = "ban"
     PURGE = "purge"
 

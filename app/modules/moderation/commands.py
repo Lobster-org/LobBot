@@ -8,8 +8,9 @@ from aiogram.exceptions import (
     TelegramBadRequest,
     TelegramForbiddenError,
 )
+from aiogram import F
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 from app.core.permissions import Permission
 from app.modules.moderation.config import (
@@ -18,8 +19,17 @@ from app.modules.moderation.config import (
     MAX_PURGE_MESSAGES,
 )
 from app.modules.moderation.filters import can_moderate_target
+from app.modules.moderation.keyboards import banned_users_keyboard
 from app.modules.moderation.router import router
-from app.telegram.filters import ModuleEnabled, PermissionRequired
+from app.modules.moderation.services.punishment_service import (
+    KickCleanupError,
+)
+from app.telegram.filters import (
+    CallbackModuleEnabled,
+    CallbackPermissionRequired,
+    ModuleEnabled,
+    PermissionRequired,
+)
 from app.telegram.helpers import smart_reply
 
 
@@ -56,6 +66,13 @@ async def resolve_target(
 
     if reply and reply.from_user:
         return reply.from_user.id, parts[1:]
+
+    # Telegram text mentions can carry the user object even when the member
+    # has no public username or has never been registered by LobBot.
+    for entity in message.entities or []:
+        mentioned_user = getattr(entity, "user", None)
+        if mentioned_user and mentioned_user.id:
+            return mentioned_user.id, []
 
     if len(parts) < 2:
         return None, []
@@ -434,6 +451,59 @@ async def ban_command(
 
 
 @router.message(
+    Command("kick"),
+    ModuleEnabled("moderation"),
+    PermissionRequired(Permission.KICK_USERS),
+)
+async def kick_command(
+    message: Message,
+    permission_service,
+    moderation_service,
+):
+    target_id, tail = await resolve_target(message, permission_service)
+    if not target_id:
+        await smart_reply(
+            message,
+            "Usage: /kick @user\nYou can also reply to a member with /kick.",
+        )
+        return
+    if await reject_protected_target(
+        message, permission_service, target_id
+    ):
+        return
+
+    reason = " ".join(tail) or DEFAULT_REASON
+    try:
+        await moderation_service.kick(
+            message.chat.id,
+            target_id,
+            message.from_user.id,
+            reason,
+        )
+    except KickCleanupError:
+        logger.exception(
+            "Kick cleanup left an active ban: chat=%s user=%s",
+            message.chat.id,
+            target_id,
+        )
+        await smart_reply(
+            message,
+            "The user was removed, but Telegram did not clear the "
+            "temporary ban. It has been added to /banned so you can "
+            "unban them safely.",
+        )
+        return
+    except TelegramAPIError as error:
+        await telegram_failure(message, error)
+        return
+
+    text = f"👢 Kicked <code>{target_id}</code>."
+    if tail:
+        text += f"\nReason: {escape(reason)}"
+    await smart_reply(message, text, parse_mode="HTML")
+
+
+@router.message(
     Command("unban"),
     ModuleEnabled("moderation"),
     PermissionRequired(Permission.BAN_USERS),
@@ -459,6 +529,132 @@ async def unban_command(
         return
 
     await smart_reply(message, f"✅ Unbanned <code>{target_id}</code>.", parse_mode="HTML")
+
+
+async def banned_view(moderation_service, chat_id: int, page: int):
+    actions, page_count = await moderation_service.banned_users(
+        chat_id,
+        page,
+    )
+    normalized_page = page % page_count if page_count else 0
+    lines = ["<b>Active bans</b>", ""]
+
+    if not actions:
+        lines.append("No active LobBot ban records.")
+    else:
+        for index, action in enumerate(
+            actions,
+            start=normalized_page * 10 + 1,
+        ):
+            lines.append(
+                f"{index}. <code>{action.user_id}</code> — "
+                f"{escape(action.reason)}"
+            )
+
+    return (
+        "\n".join(lines),
+        banned_users_keyboard(actions, normalized_page, page_count),
+    )
+
+
+@router.message(
+    Command("banned"),
+    ModuleEnabled("moderation"),
+    PermissionRequired(Permission.BAN_USERS),
+)
+async def banned_command(message: Message, moderation_service):
+    text, keyboard = await banned_view(
+        moderation_service,
+        message.chat.id,
+        0,
+    )
+    await smart_reply(
+        message,
+        text,
+        parse_mode="HTML",
+        reply_markup=keyboard,
+    )
+
+
+@router.callback_query(
+    F.data.startswith("moderation:bans:"),
+    CallbackModuleEnabled("moderation"),
+    CallbackPermissionRequired(Permission.BAN_USERS),
+)
+async def show_banned_page(
+    callback: CallbackQuery,
+    moderation_service,
+):
+    try:
+        page = int(callback.data.rsplit(":", 1)[-1])
+    except (AttributeError, ValueError):
+        await callback.answer("Invalid page.", show_alert=True)
+        return
+
+    text, keyboard = await banned_view(
+        moderation_service,
+        callback.message.chat.id,
+        page,
+    )
+    await callback.message.edit_text(
+        text,
+        parse_mode="HTML",
+        reply_markup=keyboard,
+    )
+    await callback.answer()
+
+
+@router.callback_query(
+    F.data.startswith("moderation:unban:"),
+    CallbackModuleEnabled("moderation"),
+    CallbackPermissionRequired(Permission.BAN_USERS),
+)
+async def unban_from_list(
+    callback: CallbackQuery,
+    moderation_service,
+):
+    parts = (callback.data or "").split(":")
+    try:
+        user_id = int(parts[2])
+        page = int(parts[3])
+    except (IndexError, ValueError):
+        await callback.answer("Invalid unban action.", show_alert=True)
+        return
+
+    try:
+        await moderation_service.unban(
+            callback.message.chat.id,
+            user_id,
+            callback.from_user.id,
+        )
+    except TelegramAPIError:
+        logger.exception(
+            "Inline unban failed: chat=%s user=%s",
+            callback.message.chat.id,
+            user_id,
+        )
+        await callback.answer(
+            "I couldn't unban this user.",
+            show_alert=True,
+        )
+        return
+
+    text, keyboard = await banned_view(
+        moderation_service,
+        callback.message.chat.id,
+        page,
+    )
+    await callback.message.edit_text(
+        text,
+        parse_mode="HTML",
+        reply_markup=keyboard,
+    )
+    await callback.answer(f"Unbanned {user_id}.")
+
+
+@router.callback_query(F.data == "moderation:noop")
+async def moderation_noop(callback: CallbackQuery):
+    await callback.answer()
 
 
 @router.message(

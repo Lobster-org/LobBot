@@ -40,6 +40,12 @@ class ModerationModule(BaseModule):
                 lambda: self.automod,
             )
         )
+        router.callback_query.middleware(
+            ModerationServiceMiddleware(
+                lambda: self.service,
+                lambda: self.automod,
+            )
+        )
         dispatcher.include_router(router)
 
     async def startup(self, container):

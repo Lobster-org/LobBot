@@ -5,6 +5,7 @@ AUTOMOD_VIOLATION = "moderation.automod_violation"
 USER_MUTED = "moderation.user_muted"
 USER_UNMUTED = "moderation.user_unmuted"
 USER_BANNED = "moderation.user_banned"
+USER_KICKED = "moderation.user_kicked"
 MESSAGE_PURGED = "moderation.message_purged"
 
 MODERATION_EVENTS = (
@@ -15,5 +16,6 @@ MODERATION_EVENTS = (
     USER_MUTED,
     USER_UNMUTED,
     USER_BANNED,
+    USER_KICKED,
     MESSAGE_PURGED,
 )

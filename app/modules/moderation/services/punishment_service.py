@@ -14,6 +14,10 @@ from app.modules.moderation.config import (
 logger = logging.getLogger(__name__)
 
 
+class KickCleanupError(RuntimeError):
+    """The kick ban succeeded, but Telegram did not clear it."""
+
+
 class PunishmentService:
     """Isolates Telegram punishment API operations."""
 
@@ -55,6 +59,23 @@ class PunishmentService:
             user_id=user_id,
             revoke_messages=True,
         )
+
+    async def kick(self, chat_id: int, user_id: int):
+        await self.bot.ban_chat_member(
+            chat_id=chat_id,
+            user_id=user_id,
+            revoke_messages=False,
+        )
+        try:
+            await self.bot.unban_chat_member(
+                chat_id=chat_id,
+                user_id=user_id,
+                only_if_banned=True,
+            )
+        except Exception as error:
+            raise KickCleanupError(
+                "Telegram removed the user but did not clear the ban"
+            ) from error
 
     async def unban(self, chat_id: int, user_id: int):
         await self.bot.unban_chat_member(

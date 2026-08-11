@@ -130,6 +130,36 @@ class ModerationRepository(BaseRepository):
         )
         return Punishment.from_document(document) if document else None
 
+    async def get_active_bans(
+        self,
+        chat_id: int,
+        skip: int = 0,
+        limit: int = 10,
+    ) -> list[Punishment]:
+        cursor = (
+            self.collection.find(
+                {
+                    "chat_id": chat_id,
+                    "action": PunishmentType.BAN.value,
+                    "status": PunishmentStatus.ACTIVE.value,
+                }
+            )
+            .sort("created_at", -1)
+            .skip(skip)
+            .limit(limit)
+        )
+        documents = await cursor.to_list(length=limit)
+        return [Punishment.from_document(item) for item in documents]
+
+    async def count_active_bans(self, chat_id: int) -> int:
+        return await self.collection.count_documents(
+            {
+                "chat_id": chat_id,
+                "action": PunishmentType.BAN.value,
+                "status": PunishmentStatus.ACTIVE.value,
+            }
+        )
+
     async def claim_expired_mutes(
         self,
         now: datetime,

@@ -12,6 +12,7 @@ from app.modules.moderation.events import (
     ACTION_REMOVED,
     MESSAGE_PURGED,
     USER_BANNED,
+    USER_KICKED,
     USER_MUTED,
     USER_UNMUTED,
     WARNING_CREATED,
@@ -19,6 +20,9 @@ from app.modules.moderation.events import (
 from app.modules.moderation.models.punishment import (
     Punishment,
     PunishmentType,
+)
+from app.modules.moderation.services.punishment_service import (
+    KickCleanupError,
 )
 
 
@@ -182,6 +186,59 @@ class ModerationService:
                     user_id,
                 )
             raise
+
+    async def kick(
+        self,
+        chat_id: int,
+        user_id: int,
+        moderator_id: int,
+        reason: str = "No reason provided",
+    ) -> Punishment:
+        try:
+            await self.punishments.kick(chat_id, user_id)
+        except KickCleanupError:
+            await self._create(
+                Punishment(
+                    chat_id=chat_id,
+                    user_id=user_id,
+                    moderator_id=moderator_id,
+                    action=PunishmentType.BAN,
+                    reason=f"Kick cleanup failed: {reason}",
+                    created_at=datetime.now(timezone.utc),
+                ),
+                USER_BANNED,
+            )
+            raise
+        return await self._create(
+            Punishment(
+                chat_id=chat_id,
+                user_id=user_id,
+                moderator_id=moderator_id,
+                action=PunishmentType.KICK,
+                reason=reason,
+                created_at=datetime.now(timezone.utc),
+            ),
+            USER_KICKED,
+        )
+
+    async def banned_users(
+        self,
+        chat_id: int,
+        page: int = 0,
+        page_size: int = 10,
+    ) -> tuple[list[Punishment], int]:
+        total = await self.repository.count_active_bans(chat_id)
+        if total == 0:
+            return [], 0
+
+        page_count = (total + page_size - 1) // page_size
+        page = page % page_count
+        actions = await self.repository.get_active_bans(
+            chat_id,
+            skip=page * page_size,
+            limit=page_size,
+        )
+        return actions, page_count
 
     async def unmute(
         self,
