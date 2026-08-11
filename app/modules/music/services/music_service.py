@@ -193,3 +193,24 @@ class MusicService:
         await self.cache_service.touch(
             track
         )
+
+    async def shutdown(self):
+        """Cancel downloads owned by this service and await completion."""
+        async with self._preparations_lock:
+            tasks = list(self._preparations.values())
+
+            for task in tasks:
+                task.cancel()
+
+        if tasks:
+            await asyncio.gather(
+                *tasks,
+                return_exceptions=True,
+            )
+
+        self._preparations.clear()
+
+        logger.info(
+            "Music preparation tasks stopped: count=%s",
+            len(tasks),
+        )

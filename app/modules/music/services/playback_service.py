@@ -70,6 +70,45 @@ class PlaybackService:
             len(chat_ids),
         )
 
+    async def shutdown(self):
+        """Cancel owned tasks and leave calls without deleting queues."""
+        tasks = list(self.tasks.values())
+
+        for task in tasks:
+            task.cancel()
+
+        if tasks:
+            await asyncio.gather(
+                *tasks,
+                return_exceptions=True,
+            )
+
+        self.tasks.clear()
+
+        chat_ids = self.queue_service.active_chat_ids()
+        results = await asyncio.gather(
+            *(
+                self.voice_service.stop(chat_id)
+                for chat_id in chat_ids
+            ),
+            return_exceptions=True,
+        )
+
+        for chat_id, result in zip(chat_ids, results):
+            if isinstance(result, Exception):
+                logger.error(
+                    "Failed to leave voice call during shutdown: "
+                    "chat=%s error=%r",
+                    chat_id,
+                    result,
+                )
+
+        logger.info(
+            "Playback service stopped: tasks=%s calls=%s",
+            len(tasks),
+            len(chat_ids),
+        )
+
     async def _run_player(
         self,
         chat_id: int,
