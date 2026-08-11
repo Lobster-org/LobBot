@@ -4,7 +4,7 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from app.database.mongodb import mongodb
+from app.core.container import container
 from app.core.modules import module_loader
 from app.services.module_service import ModuleService
 from app.telegram.helpers import smart_reply
@@ -33,7 +33,10 @@ async def list_modules(
         "supergroup",
     }:
 
-        database = mongodb.get_database()
+        database = container.database
+
+        if database is None:
+            raise RuntimeError("Database is not initialized")
 
         service = ModuleService(
             database
@@ -157,7 +160,10 @@ async def enable_module(
         return
 
 
-    database = mongodb.get_database()
+    database = container.database
+
+    if database is None:
+        raise RuntimeError("Database is not initialized")
 
     service = ModuleService(
         database
@@ -248,7 +254,10 @@ async def disable_module(
         return
 
 
-    database = mongodb.get_database()
+    database = container.database
+
+    if database is None:
+        raise RuntimeError("Database is not initialized")
 
     service = ModuleService(
         database
