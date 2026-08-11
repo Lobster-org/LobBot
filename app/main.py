@@ -2,43 +2,21 @@ import asyncio
 import logging
 
 from app.core.config import settings
-from app.core.logging import configure_logging
-from app.core.events import event_bus
-from app.core.modules import module_loader
-
-from app.database.mongodb import mongodb
-
-from app.telegram.client import bot, dispatcher
-from app.telegram.voice.lifecycle import (
-    VoiceLifecycle
-)
-
 from app.core.container import container
+from app.core.logging import configure_logging
+from app.core.modules import module_loader
+from app.modules.registry import register_modules
+from app.telegram.client import bot, dispatcher
+from app.telegram.voice.lifecycle import VoiceLifecycle
 from app.telegram.voice.service import VoiceChatService
-
-from app.modules.music.state import music_state
-from app.modules.music.services.playback_service import (
-    PlaybackService,
-)
-
-from app.telegram.voice.events import (
-    VoiceEventHandler,
-)
-
-from app.modules.music.config import (
-    MUSIC_STORAGE_PATH,
-)
 
 
 logger = logging.getLogger(__name__)
 
 
 async def main():
-
-    voice = None
-    configure_logging(
-        settings.LOG_LEVEL
-    )
+    configure_logging(settings.LOG_LEVEL)
+    register_modules(module_loader)
 
     logger.info(
         "LobBot starting: environment=%s database=%s",
@@ -46,99 +24,53 @@ async def main():
         settings.MONGO_DATABASE,
     )
 
-
     try:
-
-        await mongodb.connect()
-
-        await mongodb.initialize_indexes()
-
-        music_state.configure(
-            mongodb.get_database(),
-            str(MUSIC_STORAGE_PATH),
+        await container.mongodb.connect()
+        await container.mongodb.initialize_indexes()
+        container.set_database(
+            container.mongodb.get_database()
         )
 
-        await music_state.queues.restore()
-
-        voice = VoiceLifecycle()
-
-        await voice.start()
-
-        container.voice_service = VoiceChatService(voice.calls)
-
-
-        music_state.player = PlaybackService(
-            queue_service=music_state.queues,
-            voice_service=container.voice_service,
-            music_service=music_state.music_service,
-            events=event_bus,
+        container.voice_lifecycle = VoiceLifecycle()
+        await container.voice_lifecycle.start()
+        container.voice_service = VoiceChatService(
+            container.voice_lifecycle.calls
         )
 
-        music_state.voice_events = (
-            VoiceEventHandler(
-                voice_calls=voice.calls,
-                playback_service=music_state.player,
-            )
-        )
-
-        music_state.voice_events.register()
-
-        await music_state.player.restore()
-
-        await module_loader.setup(
-            dispatcher
-        )
+        await module_loader.setup(container, dispatcher)
+        await module_loader.startup(container)
 
         logger.info("LobBot ready")
         logger.info("Bot polling started")
-
-        await dispatcher.start_polling(
-            bot
-        )
-
+        await dispatcher.start_polling(bot)
     except Exception:
-        logger.exception(
-            "LobBot application failure"
-        )
+        logger.exception("LobBot application failure")
         raise
-
     finally:
         logger.info("Bot polling stopping")
 
-        if voice:
-            try:
-                await voice.stop()
-            except Exception:
-                logger.exception(
-                    "Voice client shutdown failed"
-                )
+        await module_loader.shutdown(container)
+        logger.info("Module shutdown complete")
 
-        try:
-            await module_loader.shutdown()
-            logger.info("Module shutdown complete")
-        except Exception:
-            logger.exception(
-                "Module shutdown failed"
-            )
+        if container.voice_lifecycle:
+            try:
+                await container.voice_lifecycle.stop()
+            except Exception:
+                logger.exception("Voice client shutdown failed")
 
         try:
             await bot.session.close()
             logger.info("Telegram bot session closed")
         except Exception:
-            logger.exception(
-                "Telegram bot session shutdown failed"
-            )
+            logger.exception("Telegram bot session shutdown failed")
 
         try:
-            await mongodb.disconnect()
+            await container.mongodb.disconnect()
         except Exception:
-            logger.exception(
-                "MongoDB shutdown failed"
-            )
+            logger.exception("MongoDB shutdown failed")
 
+        container.clear_runtime()
         logger.info("LobBot shutdown complete")
-
-
 
 
 if __name__ == "__main__":
