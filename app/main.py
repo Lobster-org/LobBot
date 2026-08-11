@@ -30,6 +30,7 @@ async def main():
         container.set_database(
             container.mongodb.get_database()
         )
+        container.bot = bot
 
         container.voice_lifecycle = VoiceLifecycle()
         await container.voice_lifecycle.start()
