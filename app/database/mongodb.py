@@ -106,6 +106,26 @@ class MongoDB:
             ]
         )
 
+        await database["community_settings"].create_index(
+            "chat_id",
+            unique=True,
+        )
+
+        await database["community_verifications"].create_index(
+            [
+                ("chat_id", 1),
+                ("user_id", 1),
+            ],
+            unique=True,
+        )
+
+        await database["community_verifications"].create_index(
+            [
+                ("status", 1),
+                ("expires_at", 1),
+            ]
+        )
+
         await database["moderation_actions"].create_index(
             [
                 ("chat_id", 1),
