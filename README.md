@@ -1,316 +1,233 @@
-# 🤖 LobBot - Telegram Community Platform
+# LobBot
 
-> An all-in-one Telegram bot designed to replace the need for multiple specialized bots in a single community.
+LobBot is a modular Telegram community bot intended to replace multiple single-purpose bots with one configurable platform. Groups can enable the modules they need while sharing one permission system, database, event bus, and application lifecycle.
 
-## Overview
+## Project status
 
-LobBot is an existing Telegram bot project that is being redesigned and expanded into a modular community platform.
+**Phase 1 — Core Platform: Complete ✅**
 
-Many Telegram groups currently rely on multiple bots for different purposes:
+Phase 1 established the production foundation for future LobBot modules. The next development phase is the moderation system.
 
-- 🎵 Music bots for voice chats
-- 🛡️ Moderation bots for administration
-- 👋 Welcome bots for onboarding members
-- 🎮 Game bots for engagement
-- 🤖 AI bots for assistance
-- 🎁 Utility bots for automation
+| Phase | Status |
+| --- | --- |
+| Phase 1: Core Platform | ✅ Complete |
+| Phase 2: Moderation System | ⏳ Planned |
+| Phase 3: Expanded Music Features | ⏳ Planned |
+| Phase 4: Games and Entertainment | ⏳ Planned |
+| Phase 5: Economy and Progression | ⏳ Planned |
+| Phase 6: Community Management | ⏳ Planned |
+| Phase 7: AI Features | ⏳ Planned |
+| Phase 8: Web Dashboard | ⏳ Planned |
+| Phase 9: Scaling and Reliability | ⏳ Planned |
 
-Managing multiple bots creates unnecessary complexity:
+## Phase 1 deliverables
 
-- Too many commands to remember
-- Conflicting permissions
-- Different configuration systems
-- Increased maintenance
-- Poor user experience
+### Core platform
 
-The goal of LobBot is to bring these capabilities together into a single customizable bot.
+- Modular aiogram v3 command and callback routing
+- Explicit module registration and lifecycle hooks
+- Application dependency container with consistent ownership
+- Ordered startup and reverse-order shutdown
+- Central structured logging with rotating general and error logs
+- Global aiogram exception handling with safe user responses
+- Process-local asynchronous event bus with listener isolation
+- `/start` introduction and paginated `/help` command browser
 
----
+### Users, groups, and permissions
 
-# ✨ Vision
+- Atomic MongoDB user and group registration
+- User and group activity tracking
+- Per-group module enable and disable state
+- Central named permission system
+- Telegram creator and administrator role mapping
+- Persistent custom LobBot moderator roles
+- Group-specific permission overrides
+- Reusable aiogram permission filter
 
-Build a Telegram community platform where groups can enable only the features they need while using one unified bot.
+### Phase 1 music foundation
 
-```
-Your Telegram Group
+- YouTube search through `yt-dlp`
+- Downloaded WebM audio playback through PyTgCalls
+- MongoDB music cache metadata
+- Persistent per-group queues and restart restoration
+- Duplicate-download protection
+- Multi-group playback coordination
+- Pause, resume, skip, stop, queue, and remove controls
+- Track queued, started, finished, skipped, and stopped events
+- Tracked and cancelled playback/download tasks during shutdown
 
-        |
-        |
-    @LobBot
+Playlists, favorites, lyrics, recommendations, Spotify integration, and music analytics are intentionally outside Phase 1.
 
-        |
-        |
---------------------------------
+## Architecture
 
-🎵 Music
-🛡️ Moderation
-👋 Welcome
-🎮 Games
-💰 Economy
-🤖 AI
-🎁 Giveaways
-📊 Analytics
-🔔 Automation
-
---------------------------------
-```
-
-Instead of adding ten different bots, communities add one.
-
----
-
-# 🚀 Current Status
-
-## Development Progress
-
-```
-Phase 1: Core Platform             🚧 In Progress
-Phase 2: Moderation System         ⏳ Planned
-Phase 3: Music System              ⏳ Planned
-Phase 4: Games & Fun               ⏳ Planned
-Phase 5: Economy & Progression     ⏳ Planned
-Phase 6: Community Management      ⏳ Planned
-Phase 7: AI Features               ⏳ Planned
-Phase 8: Web Dashboard             ⏳ Planned
-Phase 9: Scaling & Reliability     ⏳ Planned
-```
-
----
-
-# 🏗️ Current Phase: Phase 1 - Core Platform
-
-The current focus is rebuilding the foundation of the existing bot into a scalable modular architecture.
-
-## Goals
-
-### Bot Framework
-
-- [ ] Improve command routing
-- [ ] Add centralized error handling
-- [ ] Create module loading system
-- [ ] Improve logging
-- [ ] Create reusable Telegram utilities
-
-### User System
-
-- [ ] Create user profiles
-- [ ] Track user activity
-- [ ] Store user preferences
-- [ ] Create shared user service
-
-### Group System
-
-- [ ] Register Telegram groups
-- [ ] Store group configuration
-- [ ] Manage group settings
-- [ ] Implement permission system
-
-### Modular System
-
-Transform the existing bot into a plugin-based architecture.
-
-```
-modules/
-
-├── music/
-├── moderation/
-├── games/
-├── economy/
-├── welcome/
-├── reminders/
-├── giveaways/
-├── ai/
-└── utilities/
+```text
+Telegram Update
+      |
+      v
+aiogram Handler / Filter
+      |
+      v
+Service Layer ---------> EventBus ---------> Module listeners
+      |
+      v
+Repository Layer
+      |
+      v
+MongoDB
 ```
 
-Each module should:
+Application dependencies have one lifecycle owner:
 
-- Have independent logic
-- Register its own commands
-- Handle its own configuration
-- Communicate through shared services/events
-
----
-
-# 🧩 Planned Features
-
-## 🎵 Music System
-
-- Search and play music
-- Queue management
-- Playlists
-- Voice chat streaming
-- Favorites
-- History
-- Multi-group support
-
-## 🛡️ Moderation System
-
-- Ban/kick/mute/warn
-- Warning system
-- Anti-spam
-- Anti-flood
-- Link filtering
-- Raid protection
-- Moderation logs
-
-## 👋 Community Management
-
-- Welcome messages
-- Goodbye messages
-- Member tracking
-- Rules messages
-- Automated announcements
-
-## 🎮 Games & Entertainment
-
-- Trivia
-- Truth or Dare
-- Would You Rather
-- Mini games
-- Leaderboards
-
-## 💰 Economy System
-
-- Virtual currency
-- Daily rewards
-- User profiles
-- XP system
-- Achievements
-- Leaderboards
-
-## 🤖 AI Features
-
-- AI conversations
-- Message summaries
-- Translation
-- Writing assistance
-- AI utilities
-
-## 📊 Analytics
-
-- Member growth
-- Activity tracking
-- Most active users
-- Engagement statistics
-
----
-
-# 🏛️ Architecture
-
-The project follows a modular architecture.
-
-```
-                 Telegram
-                    |
-              Core Bot Layer
-                    |
-        -------------------------
-        |          |            |
-    Modules    Services     Events
-        |          |            |
-        -------------------------
-                    |
-          MongoDB + Redis + Storage
+```text
+Application
+  |
+  +-- AppContainer
+  |     +-- settings
+  |     +-- MongoDB / database
+  |     +-- EventBus
+  |     +-- voice lifecycle
+  |     +-- VoiceChatService
+  |
+  +-- ModuleLoader
+        +-- setup(container, dispatcher)
+        +-- startup(container)
+        +-- shutdown(container)  # reverse order
 ```
 
----
+Handlers deal with Telegram input and output, services contain business logic, repositories own database access, and feature modules communicate through events instead of importing each other.
 
-# 🛠️ Technology Stack
+## Available commands
 
-## Backend
+| Command | Purpose |
+| --- | --- |
+| `/start` | Show a short LobBot introduction |
+| `/help` | Browse commands using the inline help menu |
+| `/modules` | List modules and their current status |
+| `/enable <module>` | Enable a non-core module in a group |
+| `/disable <module>` | Disable a non-core module in a group |
+| `/role @user moderator` | Assign a custom moderator role |
+| `/unrole @user` | Remove a custom LobBot role |
+| `/play <song>` | Search for and queue music |
+| `/queue` | Show current and upcoming tracks |
+| `/remove <position>` | Remove a queued track |
+| `/pause` | Pause playback |
+| `/resume` | Resume playback |
+| `/skip` | Skip the current track |
+| `/stop` | Stop playback and clear the queue |
 
-- Python
-- Telegram Bot API
-- Pyrogram / Telethon
+Administrative commands are protected by the centralized permission system. Music must be enabled for the group before its commands are available.
+
+## Technology
+
+- Python 3.13
+- aiogram v3
+- MongoDB with Motor
+- Telethon
 - PyTgCalls
-
-## Database
-
-- MongoDB
-
-## Caching / Queues
-
-- Redis
-
-## Media Processing
-
-- FFmpeg
 - yt-dlp
+- FFmpeg
+- Docker Compose for local MongoDB
 
-## Deployment
+Redis and external message brokers are not part of the current runtime.
 
-- Docker
-- Docker Compose
+## Repository structure
 
----
+```text
+app/
+├── core/                 # configuration, container, events, logging
+├── database/             # MongoDB lifecycle, models, repositories
+├── modules/
+│   ├── group/
+│   ├── help/
+│   ├── management/
+│   ├── music/
+│   └── start/
+├── services/             # shared business services
+└── telegram/             # bot client, middleware, filters, voice
 
-# 📂 Repository Structure
-
+tests/                    # isolated service and lifecycle tests
+storage/music/            # downloaded music cache
+docs/                     # implementation and review notes
 ```
-LobBot/
-     ├── core/
-     ├── modules/
-     ├── services/
-     ├── workers/
-     ├── tests/
-     ├── docker-compose.yml
-     └── README.md
+
+## Local setup
+
+### Requirements
+
+- Python 3.13
+- MongoDB
+- FFmpeg available on `PATH`
+- Telegram bot token
+- Telegram API ID and API hash for the voice client
+
+### Installation
+
+```bash
+python3.13 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
 ```
 
----
+Configure these values in `.env`:
 
-# 📌 Development Roadmap
+```dotenv
+ENVIRONMENT=development
+LOG_LEVEL=INFO
 
-## Phase 1 - Foundation
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_API_ID=
+TELEGRAM_API_HASH=
+VOICE_SESSION_NAME=lobbot_voice
 
-Status: 🚧 In Progress
+MONGO_URI=mongodb://localhost:27017
+MONGO_DATABASE=lobbot
 
-Focus:
+# Reserved for a later phase; required by the current settings schema.
+REDIS_URI=redis://localhost:6379/0
 
-- Modular architecture
-- MongoDB design
-- User system
-- Group system
-- Permissions
-- Module framework
+MUSIC_STORAGE_PATH=storage/music
+```
 
-## Phase 2 - Moderation
+Start the application:
 
-Status: ⏳ Planned
+```bash
+python -m app.main
+```
 
-Focus:
+The first voice-client login may require Telegram authentication. Never commit tokens, API hashes, codes, or session files.
 
-- Admin tools
-- Automated moderation
-- Filtering
-- Logging
+## Testing
 
-## Phase 3 - Music
+Run tests that do not require a live MongoDB instance:
 
-Status: ⏳ Planned
+```bash
+pytest -q --ignore=tests/test_mongodb.py --ignore=tests/test_repositories.py
+```
 
-Focus:
+Phase 1 currently has **42 passing offline tests**, covering permissions, logging, global errors, help navigation, events, music persistence/playback, and module lifecycle behavior.
 
-- Voice chat integration
-- Music queue
-- Audio pipeline
-- Caching
+Run the entire suite when a test MongoDB instance is available:
 
-## Phase 4+ Expansion
+```bash
+pytest -q
+```
 
-Future development:
+## Phase 1 boundaries
 
-- Community engagement
-- AI tools
-- Automation
-- Dashboard
-- Scaling
+The following were deliberately deferred:
 
----
+- Redis-backed state
+- Playlists and favorites
+- Lyrics and recommendations
+- Spotify integration
+- Moderation features
+- Economy and analytics modules
+- Web dashboard
+- Distributed workers or message brokers
 
-# 🎯 Long-Term Goal
+See [ARCHITECTURE.md](ARCHITECTURE.md) and [PLAN.md](PLAN.md) for the broader design and roadmap.
 
-Transform LobBot from a simple Telegram bot into a complete community management platform.
+## Vision
 
-> One bot. Every community feature. Fully customizable.
+One bot. Every community feature. Fully customizable.
