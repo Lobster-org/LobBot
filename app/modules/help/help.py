@@ -116,15 +116,35 @@ COMMANDS = (
         "Ban a member from the group and record the moderation action. Reply targets are supported.",
     ),
     CommandHelp(
+        "kick",
+        "/kick @user",
+        "Remove a member without permanently banning them. You can optionally add a reason or reply to the member's message.",
+    ),
+    CommandHelp(
         "unban",
         "/unban @user",
         "Remove a Telegram ban and close the member's active LobBot ban record.",
+    ),
+    CommandHelp(
+        "banned",
+        "/banned",
+        "List active LobBot ban records and unban users with inline buttons.",
     ),
     CommandHelp(
         "purge",
         "/purge <amount> or reply with /purge",
         "Delete recent messages in bulk. With a reply, deletion starts at that message and ends at /purge. Maximum: 10,000.",
     ),
+    CommandHelp("rules", "/rules", "Show the rules configured for the current group."),
+    CommandHelp("community", "/community", "Show welcome, goodbye, rules, verification, and service-message settings."),
+    CommandHelp("welcome", "/welcome on|off", "Enable or disable welcome messages for new members."),
+    CommandHelp("setwelcome", "/setwelcome <message>", "Set the welcome template. Supports {mention}, {name}, {first_name}, {username}, {group}, and {member_count}."),
+    CommandHelp("goodbye", "/goodbye on|off", "Enable or disable comical goodbye messages."),
+    CommandHelp("setgoodbye", "/setgoodbye <message>", "Set the goodbye template using the community template variables."),
+    CommandHelp("setrules", "/setrules <text>", "Save the current group's rules."),
+    CommandHelp("clearrules", "/clearrules", "Remove the current group's configured rules."),
+    CommandHelp("verification", "/verification on|off", "Require newcomers to press their personal Verify button before chatting."),
+    CommandHelp("servicecleanup", "/servicecleanup on|off", "Delete Telegram join and leave service messages after community processing."),
 )
 
 
