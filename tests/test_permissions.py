@@ -19,6 +19,9 @@ class FakeMembershipProvider:
     async def get_status(self, chat_id, user_id):
         return self.statuses.get((chat_id, user_id))
 
+    async def resolve_user_id(self, username):
+        return self.statuses.get(("username", username.lower()))
+
 
 class FakeGroupRepository:
 
@@ -198,6 +201,12 @@ async def test_group_permission_override_changes_role_default():
         6,
         Permission.BAN_USERS,
     ) is False
+
+
+async def test_username_resolution_falls_back_to_telegram_provider():
+    service, _ = permission_service({("username", "@newmember"): 9876})
+
+    assert await service.resolve_user_id("@NewMember") == 9876
 
 
 class FilterPermissionService:

@@ -29,8 +29,20 @@ def test_help_catalog_contains_registered_commands():
         "mute",
         "unmute",
         "ban",
+        "kick",
         "unban",
+        "banned",
         "purge",
+        "rules",
+        "community",
+        "welcome",
+        "setwelcome",
+        "goodbye",
+        "setgoodbye",
+        "setrules",
+        "clearrules",
+        "verification",
+        "servicecleanup",
     }
 
     assert set(COMMANDS_BY_NAME) == expected
@@ -67,13 +79,14 @@ def test_help_keyboard_is_five_by_three():
 
 
 def test_help_navigation_wraps_between_pages():
-    assert help_page_count() == 2
+    page_count = help_page_count()
+    assert page_count >= 3
 
     first_page = help_keyboard(0)
-    last_page = help_keyboard(1)
+    last_page = help_keyboard(page_count - 1)
 
     assert first_page.inline_keyboard[-1][0].callback_data == (
-        "help:page:1"
+        f"help:page:{page_count - 1}"
     )
     assert last_page.inline_keyboard[-1][2].callback_data == (
         "help:page:0"

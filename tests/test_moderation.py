@@ -25,6 +25,7 @@ from app.modules.moderation.services.moderation_service import (
     ModerationService,
 )
 from app.modules.moderation.services.punishment_service import (
+    KickCleanupError,
     PunishmentService,
 )
 
@@ -81,6 +82,27 @@ class Repository:
                 return item
         return None
 
+    async def count_active_bans(self, chat_id):
+        return len(
+            [
+                item
+                for item in self.actions
+                if item.chat_id == chat_id
+                and item.action == PunishmentType.BAN
+                and item.status == PunishmentStatus.ACTIVE
+            ]
+        )
+
+    async def get_active_bans(self, chat_id, skip=0, limit=10):
+        actions = [
+            item
+            for item in reversed(self.actions)
+            if item.chat_id == chat_id
+            and item.action == PunishmentType.BAN
+            and item.status == PunishmentStatus.ACTIVE
+        ]
+        return actions[skip:skip + limit]
+
     async def claim_expired_mutes(self, now, limit):
         claimed = self.expired[:limit]
         self.expired = self.expired[limit:]
@@ -98,6 +120,7 @@ class Punishments:
         self.muted = []
         self.unmuted = []
         self.banned = []
+        self.kicked = []
         self.unbanned = []
         self.purged = []
         self.unmute_error = None
@@ -112,6 +135,9 @@ class Punishments:
 
     async def ban(self, chat_id, user_id):
         self.banned.append((chat_id, user_id))
+
+    async def kick(self, chat_id, user_id):
+        self.kicked.append((chat_id, user_id))
 
     async def unban(self, chat_id, user_id):
         self.unbanned.append((chat_id, user_id))
@@ -143,6 +169,7 @@ def test_moderator_permissions_include_all_moderation_actions():
         Permission.VIEW_MOD_LOGS,
     } <= permissions
     assert Permission.BAN_USERS not in permissions
+    assert Permission.KICK_USERS not in permissions
 
 
 @pytest.mark.asyncio
@@ -332,6 +359,52 @@ async def test_ban_unban_and_purge_records_and_events():
 
 
 @pytest.mark.asyncio
+async def test_kick_is_recorded_without_creating_active_ban():
+    service, repository, punishments, _ = build_service()
+
+    action = await service.kick(-100, 10, 20, "cleanup")
+    bans, page_count = await service.banned_users(-100)
+
+    assert punishments.kicked == [(-100, 10)]
+    assert action.action == PunishmentType.KICK
+    assert action in repository.actions
+    assert bans == []
+    assert page_count == 0
+
+
+@pytest.mark.asyncio
+async def test_failed_kick_cleanup_is_visible_in_banned_list():
+    service, _, punishments, _ = build_service()
+
+    async def fail_kick(chat_id, user_id):
+        raise KickCleanupError("cleanup failed")
+
+    punishments.kick = fail_kick
+
+    with pytest.raises(KickCleanupError):
+        await service.kick(-100, 10, 20, "cleanup")
+
+    bans, page_count = await service.banned_users(-100)
+    assert bans[0].user_id == 10
+    assert bans[0].reason == "Kick cleanup failed: cleanup"
+    assert page_count == 1
+
+
+@pytest.mark.asyncio
+async def test_banned_users_lists_only_active_ban_records():
+    service, _, _, _ = build_service()
+    first = await service.ban(-100, 10, 20, "first")
+    second = await service.ban(-100, 11, 20, "second")
+    await service.unban(-100, 10, 20)
+
+    bans, page_count = await service.banned_users(-100)
+
+    assert first.status == PunishmentStatus.REMOVED
+    assert bans == [second]
+    assert page_count == 1
+
+
+@pytest.mark.asyncio
 async def test_worker_start_and_stop_are_idempotent():
     service, _, _, _ = build_service()
     await service.start()
@@ -380,6 +453,7 @@ async def test_punishment_service_uses_telegram_api():
     await service.mute(-100, 10, expires)
     await service.unmute(-100, 10)
     await service.ban(-100, 10)
+    await service.kick(-100, 11)
     await service.unban(-100, 10)
     await service.purge(-100, [1, 2])
 
@@ -387,9 +461,31 @@ async def test_punishment_service_uses_telegram_api():
         "restrict",
         "restrict",
         "ban",
+        "ban",
+        "unban",
         "unban",
         "purge",
     ]
+
+
+@pytest.mark.asyncio
+async def test_kick_target_can_come_from_telegram_text_mention():
+    from app.modules.moderation.commands import resolve_target
+
+    message = SimpleNamespace(
+        text="/kick Display Name",
+        reply_to_message=None,
+        entities=[SimpleNamespace(user=SimpleNamespace(id=1234))],
+    )
+
+    class Permissions:
+        async def resolve_user_id(self, reference):
+            raise AssertionError("embedded mention should resolve directly")
+
+    target_id, reason = await resolve_target(message, Permissions())
+
+    assert target_id == 1234
+    assert reason == []
 
 
 @pytest.mark.asyncio

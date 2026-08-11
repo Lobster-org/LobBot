@@ -29,6 +29,10 @@ class Cursor:
         self.limit_value = value
         return self
 
+    def skip(self, value):
+        self.documents = self.documents[value:]
+        return self
+
     async def to_list(self, length):
         return self.documents[:length]
 
