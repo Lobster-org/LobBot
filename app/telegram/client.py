@@ -4,10 +4,14 @@ from app.core.config import settings
 
 from app.telegram.middleware import (
     DatabaseMiddleware,
+    PermissionMiddleware,
 )
 
 from app.telegram.debug import (
     DebugMiddleware
+)
+from app.telegram.errors import (
+    register_error_handlers,
 )
 
 bot = Bot(
@@ -17,9 +21,21 @@ bot = Bot(
 
 dispatcher = Dispatcher()
 
+register_error_handlers(dispatcher)
+
 
 database_middleware = (
     DatabaseMiddleware()
+)
+
+permission_middleware = (
+    PermissionMiddleware()
+)
+
+# Permission filters run before normal middleware,
+# so their dependency must be injected in outer scope.
+dispatcher.message.outer_middleware(
+    permission_middleware,
 )
 
 # Database middleware

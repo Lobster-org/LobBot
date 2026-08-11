@@ -1,9 +1,14 @@
+import logging
+
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
-from aiogram.enums import ChatMemberStatus
 
+from app.core.permissions import Permission
 from app.database.mongodb import mongodb
 from app.services.module_service import ModuleService
+
+
+logger = logging.getLogger(__name__)
 
 
 class ModuleEnabled(BaseFilter):
@@ -36,22 +41,23 @@ class ModuleEnabled(BaseFilter):
             database
         )
 
-        enabled_modules = (
-            await service.get_enabled_modules(
-                message.chat.id
-            )
-        )
-
         return await service.is_enabled(
             message.chat.id,
             self.module_name
         )
 
-class GroupAdmin(BaseFilter):
+class PermissionRequired(BaseFilter):
+
+    def __init__(
+        self,
+        permission: Permission,
+    ):
+        self.permission = Permission(permission)
 
     async def __call__(
         self,
         message: Message,
+        permission_service,
     ) -> bool:
 
         if message.chat.type not in {
@@ -63,11 +69,27 @@ class GroupAdmin(BaseFilter):
         if not message.from_user:
             return False
 
-        member = await message.chat.get_member(
-            message.from_user.id
-        )
+        try:
+            return await permission_service.has_permission(
+                chat_id=message.chat.id,
+                user_id=message.from_user.id,
+                permission=self.permission,
+            )
+        except Exception:
+            logger.exception(
+                "Permission check failed: chat=%s user=%s permission=%s",
+                message.chat.id,
+                message.from_user.id,
+                self.permission.value,
+            )
+            return False
 
-        return member.status in {
-            ChatMemberStatus.ADMINISTRATOR,
-            ChatMemberStatus.CREATOR,
-        }
+
+class GroupAdmin(PermissionRequired):
+
+    """Backward-compatible alias for module administration."""
+
+    def __init__(self):
+        super().__init__(
+            Permission.MANAGE_MODULES
+        )

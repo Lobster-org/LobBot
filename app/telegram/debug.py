@@ -1,4 +1,9 @@
+import logging
+
 from aiogram import BaseMiddleware
+
+
+logger = logging.getLogger(__name__)
 
 
 class DebugMiddleware(
@@ -12,8 +17,8 @@ class DebugMiddleware(
         data,
     ):
 
-        print(
-            "UPDATE:",
+        logger.debug(
+            "Telegram update received: type=%s",
             type(event).__name__,
         )
 

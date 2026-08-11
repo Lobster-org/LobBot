@@ -4,6 +4,8 @@ from aiogram import BaseMiddleware
 
 from app.database.mongodb import mongodb
 from app.services.user_service import UserService
+from app.services.permission_service import PermissionService
+from app.telegram.membership import TelegramMembershipProvider
 
 
 class DatabaseMiddleware(BaseMiddleware):
@@ -65,3 +67,29 @@ class DatabaseMiddleware(BaseMiddleware):
             event,
             data,
         )
+
+
+class PermissionMiddleware(BaseMiddleware):
+
+    async def __call__(
+        self,
+        handler: Callable[
+            [Any, dict[str, Any]],
+            Awaitable[Any],
+        ],
+        event: Any,
+        data: dict[str, Any],
+    ):
+        database = mongodb.get_database()
+        bot = data.get("bot")
+
+        data["permission_service"] = PermissionService(
+            database=database,
+            membership_provider=(
+                TelegramMembershipProvider(bot)
+                if bot
+                else None
+            ),
+        )
+
+        return await handler(event, data)
