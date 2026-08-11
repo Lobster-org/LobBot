@@ -82,9 +82,6 @@ ENV/
 env.bak/
 venv.bak/
 
-# LLM Models
-models/
-
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -119,3 +116,9 @@ tempCodeRunnerFile.py
 
 # DS Store
 *.DS_Store
+
+# Storage for music
+/storage/music
+
+# Runtime logs
+/logs/
