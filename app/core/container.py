@@ -14,6 +14,7 @@ class AppContainer:
     mongodb: MongoDB
     event_bus: EventBus
     database: Any = None
+    bot: Any = None
     voice_lifecycle: Any = None
     voice_service: Any = None
 
@@ -22,6 +23,7 @@ class AppContainer:
 
     def clear_runtime(self) -> None:
         self.database = None
+        self.bot = None
         self.voice_lifecycle = None
         self.voice_service = None
 

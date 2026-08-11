@@ -15,6 +15,8 @@ class Permission(str, Enum):
     MANAGE_MODERATION = "manage_moderation"
     BAN_USERS = "ban_users"
     MUTE_USERS = "mute_users"
+    PURGE_MESSAGES = "purge_messages"
+    VIEW_MOD_LOGS = "view_mod_logs"
     DELETE_MESSAGES = "delete_messages"
     MANAGE_WELCOME = "manage_welcome"
     MANAGE_GIVEAWAYS = "manage_giveaways"
@@ -34,6 +36,8 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
             Permission.MANAGE_MODERATION,
             Permission.BAN_USERS,
             Permission.MUTE_USERS,
+            Permission.PURGE_MESSAGES,
+            Permission.VIEW_MOD_LOGS,
             Permission.DELETE_MESSAGES,
             Permission.VIEW_ADMIN_LOGS,
         }
