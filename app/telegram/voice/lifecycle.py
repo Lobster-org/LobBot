@@ -13,9 +13,13 @@ class VoiceLifecycle:
 
         self.client = None
         self.calls = None
+        self.started = False
 
 
     async def start(self):
+
+        if self.started:
+            return
 
         logger.info("Starting Telegram voice client")
 
@@ -35,11 +39,22 @@ class VoiceLifecycle:
 
         await self.calls.start()
 
+        self.started = True
+
         logger.info("PyTgCalls voice engine ready")
 
 
     async def stop(self):
 
         if self.client:
-            await self.client.disconnect()
+            try:
+                await self.client.disconnect()
+            except Exception:
+                logger.exception(
+                    "Telegram voice client disconnect failed"
+                )
+
+        self.client = None
+        self.calls = None
+        self.started = False
         logger.info("Telegram voice client disconnected")

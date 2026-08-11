@@ -4,7 +4,7 @@ from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
 from app.core.permissions import Permission
-from app.database.mongodb import mongodb
+from app.core.container import container
 from app.services.module_service import ModuleService
 
 
@@ -35,7 +35,13 @@ class ModuleEnabled(BaseFilter):
         }:
             return False
 
-        database = mongodb.get_database()
+        database = container.database
+
+        if database is None:
+            logger.error(
+                "Module filter used before application startup"
+            )
+            return False
 
         service = ModuleService(
             database

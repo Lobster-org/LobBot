@@ -2,7 +2,7 @@ from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
 
-from app.database.mongodb import mongodb
+from app.core.container import container
 from app.services.user_service import UserService
 from app.services.permission_service import PermissionService
 from app.telegram.membership import TelegramMembershipProvider
@@ -20,7 +20,12 @@ class DatabaseMiddleware(BaseMiddleware):
         data: dict[str, Any],
     ):
 
-        database = mongodb.get_database()
+        database = container.database
+
+        if database is None:
+            raise RuntimeError(
+                "Database middleware used before application startup"
+            )
 
         service = UserService(
             database
@@ -80,7 +85,12 @@ class PermissionMiddleware(BaseMiddleware):
         event: Any,
         data: dict[str, Any],
     ):
-        database = mongodb.get_database()
+        database = container.database
+
+        if database is None:
+            raise RuntimeError(
+                "Permission middleware used before application startup"
+            )
         bot = data.get("bot")
 
         data["permission_service"] = PermissionService(
