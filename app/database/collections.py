@@ -5,3 +5,5 @@ GROUPS = "groups"
 MUSIC_CACHE = "music_cache"
 
 MUSIC_SESSIONS = "music_sessions"
+
+MODERATION_ACTIONS = "moderation_actions"

@@ -99,6 +99,28 @@ class MongoDB:
             "updated_at"
         )
 
+        await database["moderation_actions"].create_index(
+            [
+                ("chat_id", 1),
+                ("user_id", 1),
+            ]
+        )
+
+        await database["moderation_actions"].create_index(
+            [
+                ("chat_id", 1),
+                ("created_at", -1),
+            ]
+        )
+
+        await database["moderation_actions"].create_index(
+            [
+                ("action", 1),
+                ("status", 1),
+                ("expires_at", 1),
+            ]
+        )
+
         logger.info("MongoDB indexes initialized")
 
 
