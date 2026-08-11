@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     # Telegram
     TELEGRAM_BOT_TOKEN: str
 
+    # Telegram MTProto Voice Client
+    TELEGRAM_API_ID: int
+    TELEGRAM_API_HASH: str
+    VOICE_SESSION_NAME: str = "lobbot_voice"
+
 
     # MongoDB
     MONGO_URI: str
@@ -45,6 +50,8 @@ class Settings(BaseSettings):
     
     # class Redis:
     #     uri: str
+    
+    MUSIC_STORAGE_PATH: str = "storage/music"
 
 
 @lru_cache
