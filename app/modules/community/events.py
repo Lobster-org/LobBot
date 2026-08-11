@@ -1,0 +1,5 @@
+MEMBER_JOINED = "community.member_joined"
+MEMBER_LEFT = "community.member_left"
+VERIFICATION_STARTED = "community.verification_started"
+MEMBER_VERIFIED = "community.member_verified"
+VERIFICATION_EXPIRED = "community.verification_expired"

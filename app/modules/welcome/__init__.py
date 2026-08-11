@@ -1,1 +1,0 @@
-"""New-member welcome module."""
