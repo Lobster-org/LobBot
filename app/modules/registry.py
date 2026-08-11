@@ -3,6 +3,9 @@ from app.modules.loader import module_loader
 from app.modules.start.module import (
     StartModule,
 )
+from app.modules.help.module import (
+    HelpModule,
+)
 
 from app.modules.group.module import (
     GroupModule,
@@ -21,6 +24,10 @@ def register_modules():
 
     module_loader.register(
         StartModule()
+    )
+
+    module_loader.register(
+        HelpModule()
     )
 
     module_loader.register(

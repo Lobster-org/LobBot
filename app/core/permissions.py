@@ -1,0 +1,42 @@
+from enum import Enum
+
+
+class Role(str, Enum):
+    OWNER = "owner"
+    ADMIN = "admin"
+    MODERATOR = "moderator"
+    MEMBER = "member"
+
+
+class Permission(str, Enum):
+    MANAGE_ROLES = "manage_roles"
+    MANAGE_MODULES = "manage_modules"
+    MANAGE_MUSIC = "manage_music"
+    MANAGE_MODERATION = "manage_moderation"
+    BAN_USERS = "ban_users"
+    MUTE_USERS = "mute_users"
+    DELETE_MESSAGES = "delete_messages"
+    MANAGE_WELCOME = "manage_welcome"
+    MANAGE_GIVEAWAYS = "manage_giveaways"
+    MANAGE_ECONOMY = "manage_economy"
+    MANAGE_AI = "manage_ai"
+    VIEW_ADMIN_LOGS = "view_admin_logs"
+
+
+ALL_PERMISSIONS = frozenset(Permission)
+
+
+ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
+    Role.OWNER: ALL_PERMISSIONS,
+    Role.ADMIN: ALL_PERMISSIONS,
+    Role.MODERATOR: frozenset(
+        {
+            Permission.MANAGE_MODERATION,
+            Permission.BAN_USERS,
+            Permission.MUTE_USERS,
+            Permission.DELETE_MESSAGES,
+            Permission.VIEW_ADMIN_LOGS,
+        }
+    ),
+    Role.MEMBER: frozenset(),
+}
