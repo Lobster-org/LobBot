@@ -37,6 +37,9 @@ permission_middleware = (
 dispatcher.message.outer_middleware(
     permission_middleware,
 )
+dispatcher.callback_query.outer_middleware(
+    permission_middleware,
+)
 
 # Database middleware
 dispatcher.message.middleware(

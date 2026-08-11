@@ -96,7 +96,14 @@ class PermissionMiddleware(BaseMiddleware):
         data["permission_service"] = PermissionService(
             database=database,
             membership_provider=(
-                TelegramMembershipProvider(bot)
+                TelegramMembershipProvider(
+                    bot,
+                    user_client=(
+                        container.voice_lifecycle.client
+                        if container.voice_lifecycle
+                        else None
+                    ),
+                )
                 if bot
                 else None
             ),

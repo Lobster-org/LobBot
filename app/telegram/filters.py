@@ -1,7 +1,7 @@
 import logging
 
 from aiogram.filters import BaseFilter
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 
 from app.core.permissions import Permission
 from app.core.container import container
@@ -127,3 +127,59 @@ class GroupAdmin(PermissionRequired):
         super().__init__(
             Permission.MANAGE_MODULES
         )
+
+
+class CallbackPermissionRequired(BaseFilter):
+    def __init__(self, permission: Permission):
+        self.permission = Permission(permission)
+
+    async def __call__(
+        self,
+        callback: CallbackQuery,
+        permission_service,
+    ) -> bool:
+        message = callback.message
+        if (
+            not message
+            or message.chat.type not in {"group", "supergroup"}
+            or not callback.from_user
+        ):
+            await callback.answer(
+                "This action is only available in groups.",
+                show_alert=True,
+            )
+            return False
+
+        allowed = await permission_service.has_permission(
+            message.chat.id,
+            callback.from_user.id,
+            self.permission,
+        )
+        if not allowed:
+            await callback.answer(
+                "You don't have permission to use this action.",
+                show_alert=True,
+            )
+        return allowed
+
+
+class CallbackModuleEnabled(BaseFilter):
+    def __init__(self, module_name: str):
+        self.module_name = module_name
+
+    async def __call__(self, callback: CallbackQuery) -> bool:
+        if not callback.message:
+            return False
+        database = container.database
+        if database is None:
+            return False
+        enabled = await ModuleService(database).is_enabled(
+            callback.message.chat.id,
+            self.module_name,
+        )
+        if not enabled:
+            await callback.answer(
+                "This module is no longer enabled.",
+                show_alert=True,
+            )
+        return enabled
