@@ -5,6 +5,7 @@ from app.modules.moderation import commands  # noqa: F401
 from app.modules.moderation.events import MODERATION_EVENTS
 from app.modules.moderation.filters import ModerationServiceMiddleware
 from app.modules.moderation.repositories.moderation_repository import (
+    AutomodRepository,
     ModerationRepository,
 )
 from app.modules.moderation.router import router
@@ -14,6 +15,7 @@ from app.modules.moderation.services.moderation_service import (
 from app.modules.moderation.services.punishment_service import (
     PunishmentService,
 )
+from app.modules.moderation.services.automod_service import AutomodService
 
 
 logger = logging.getLogger(__name__)
@@ -22,17 +24,21 @@ logger = logging.getLogger(__name__)
 class ModerationModule(BaseModule):
     name = "moderation"
     version = "1.0.0"
-    description = "Temporary mutes, bans, and message cleanup tools."
+    description = "Warnings, automated filters, mutes, bans, and cleanup."
     enabled_by_default = False
     core = False
 
     def __init__(self):
         self.service: ModerationService | None = None
+        self.automod: AutomodService | None = None
         self._event_listener = self._log_moderation_event
 
     async def setup(self, container, dispatcher):
         router.message.middleware(
-            ModerationServiceMiddleware(lambda: self.service)
+            ModerationServiceMiddleware(
+                lambda: self.service,
+                lambda: self.automod,
+            )
         )
         dispatcher.include_router(router)
 
@@ -45,6 +51,12 @@ class ModerationModule(BaseModule):
         self.service = ModerationService(
             repository=ModerationRepository(container.database),
             punishments=PunishmentService(container.bot),
+            events=container.event_bus,
+        )
+        self.automod = AutomodService(
+            repository=AutomodRepository(container.database),
+            moderation_service=self.service,
+            bot=container.bot,
             events=container.event_bus,
         )
         await self.service.start()
@@ -60,6 +72,8 @@ class ModerationModule(BaseModule):
     async def shutdown(self, container):
         if self.service:
             await self.service.stop()
+        if self.automod:
+            self.automod.clear()
 
         for event_name in MODERATION_EVENTS:
             container.event_bus.unsubscribe(
@@ -68,6 +82,7 @@ class ModerationModule(BaseModule):
             )
 
         self.service = None
+        self.automod = None
         logger.info("Moderation runtime stopped")
 
     async def _log_moderation_event(self, event):

@@ -14,6 +14,7 @@ from app.modules.moderation.events import (
     USER_BANNED,
     USER_MUTED,
     USER_UNMUTED,
+    WARNING_CREATED,
 )
 from app.modules.moderation.models.punishment import (
     Punishment,
@@ -47,6 +48,62 @@ class ModerationService:
         self.batch_size = batch_size
         self._expiration_task: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
+
+    async def warn(
+        self,
+        chat_id: int,
+        user_id: int,
+        moderator_id: int,
+        reason: str,
+    ) -> Punishment:
+        return await self._create(
+            Punishment(
+                chat_id=chat_id,
+                user_id=user_id,
+                moderator_id=moderator_id,
+                action=PunishmentType.WARN,
+                reason=reason,
+                created_at=datetime.now(timezone.utc),
+            ),
+            WARNING_CREATED,
+        )
+
+    async def warnings(
+        self,
+        chat_id: int,
+        user_id: int,
+    ) -> list[Punishment]:
+        return await self.repository.get_warnings(chat_id, user_id)
+
+    async def warning_count(self, chat_id: int, user_id: int) -> int:
+        return await self.repository.count_warnings(chat_id, user_id)
+
+    async def remove_warning(
+        self,
+        chat_id: int,
+        warning_id: str,
+        moderator_id: int,
+    ) -> Punishment | None:
+        action = await self.repository.remove_warning(
+            chat_id,
+            warning_id,
+            moderator_id,
+        )
+        if action:
+            await self._emit(ACTION_REMOVED, action)
+        return action
+
+    async def resolve_warnings(
+        self,
+        chat_id: int,
+        user_id: int,
+        moderator_id: int,
+    ) -> int:
+        return await self.repository.resolve_warnings(
+            chat_id,
+            user_id,
+            moderator_id,
+        )
 
     async def mute(
         self,
@@ -125,6 +182,35 @@ class ModerationService:
                     user_id,
                 )
             raise
+
+    async def unmute(
+        self,
+        chat_id: int,
+        user_id: int,
+        moderator_id: int,
+        reason: str = "Manual unmute",
+    ) -> Punishment:
+        await self.punishments.unmute(chat_id, user_id)
+        removed = await self.repository.remove_active_action(
+            chat_id,
+            user_id,
+            PunishmentType.MUTE,
+            moderator_id,
+        )
+        if removed:
+            await self._emit(ACTION_REMOVED, removed)
+
+        return await self._create(
+            Punishment(
+                chat_id=chat_id,
+                user_id=user_id,
+                moderator_id=moderator_id,
+                action=PunishmentType.UNMUTE,
+                reason=reason,
+                created_at=datetime.now(timezone.utc),
+            ),
+            USER_UNMUTED,
+        )
 
     async def unban(
         self,

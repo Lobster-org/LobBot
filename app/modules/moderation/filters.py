@@ -30,8 +30,9 @@ async def can_moderate_target(
 
 
 class ModerationServiceMiddleware(BaseMiddleware):
-    def __init__(self, service_getter):
+    def __init__(self, service_getter, automod_getter):
         self.service_getter = service_getter
+        self.automod_getter = automod_getter
 
     async def __call__(self, handler, event, data):
         service = self.service_getter()
@@ -39,4 +40,5 @@ class ModerationServiceMiddleware(BaseMiddleware):
             raise RuntimeError("Moderation service is not initialized")
 
         data["moderation_service"] = service
+        data["automod_service"] = self.automod_getter()
         return await handler(event, data)

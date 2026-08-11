@@ -81,9 +81,34 @@ COMMANDS = (
         "Stop voice playback, leave the call, and clear this group's music queue.",
     ),
     CommandHelp(
+        "warn",
+        "/warn @user <reason>",
+        "Add a persistent warning for a member in this group. Reply targets are supported.",
+    ),
+    CommandHelp(
+        "warnings",
+        "/warnings @user",
+        "List a member's active manual and automated moderation warnings.",
+    ),
+    CommandHelp(
+        "warnremove",
+        "/warnremove <id>",
+        "Remove one active warning using the ID displayed by /warnings.",
+    ),
+    CommandHelp(
+        "automod",
+        "/automod [status|on|off]",
+        "Configure flood, repeated-message, link, excessive-caps, and blocked-word filters for this group.",
+    ),
+    CommandHelp(
         "mute",
         "/mute @user <10s|5m|2h|7d> [reason]",
         "Temporarily prevent a member from sending messages. Replying to the member is also supported.",
+    ),
+    CommandHelp(
+        "unmute",
+        "/unmute @user",
+        "Restore a muted member's group messaging permissions. Reply targets are supported.",
     ),
     CommandHelp(
         "ban",

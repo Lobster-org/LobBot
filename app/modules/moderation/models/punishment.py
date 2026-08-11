@@ -5,7 +5,9 @@ from typing import Any
 
 
 class PunishmentType(str, Enum):
+    WARN = "warn"
     MUTE = "mute"
+    UNMUTE = "unmute"
     BAN = "ban"
     PURGE = "purge"
 

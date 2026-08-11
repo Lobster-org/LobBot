@@ -13,6 +13,7 @@ class Permission(str, Enum):
     MANAGE_MODULES = "manage_modules"
     MANAGE_MUSIC = "manage_music"
     MANAGE_MODERATION = "manage_moderation"
+    WARN_USERS = "warn_users"
     BAN_USERS = "ban_users"
     MUTE_USERS = "mute_users"
     PURGE_MESSAGES = "purge_messages"
@@ -34,7 +35,7 @@ ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.MODERATOR: frozenset(
         {
             Permission.MANAGE_MODERATION,
-            Permission.BAN_USERS,
+            Permission.WARN_USERS,
             Permission.MUTE_USERS,
             Permission.PURGE_MESSAGES,
             Permission.VIEW_MOD_LOGS,

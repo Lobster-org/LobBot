@@ -91,7 +91,8 @@ async def reject_protected_target(
     if not allowed:
         await smart_reply(
             message,
-            "You cannot moderate a member with an equal or higher role.",
+            "Sorry, I can't remove, ban, or restrict this user. "
+            "They have an equal or higher administrative role.",
         )
         return True
     return False
@@ -102,6 +103,200 @@ async def telegram_failure(message: Message, error: Exception):
         "Telegram rejected moderation action: chat=%s error=%s",
         message.chat.id,
         error,
+    )
+    await smart_reply(
+        message,
+        "Sorry, I can't remove, ban, or restrict this user. "
+        "They may be an administrator, the group owner, or above "
+        "LobBot in the Telegram admin hierarchy.",
+    )
+
+
+@router.message(
+    Command("warn"),
+    ModuleEnabled("moderation"),
+    PermissionRequired(Permission.WARN_USERS),
+)
+async def warn_command(
+    message: Message,
+    permission_service,
+    moderation_service,
+):
+    target_id, tail = await resolve_target(message, permission_service)
+    if not target_id or not tail:
+        await smart_reply(message, "Usage: /warn @user <reason>")
+        return
+    if await reject_protected_target(
+        message, permission_service, target_id
+    ):
+        return
+
+    action = await moderation_service.warn(
+        message.chat.id,
+        target_id,
+        message.from_user.id,
+        " ".join(tail),
+    )
+    await smart_reply(
+        message,
+        f"⚠️ Warned <code>{target_id}</code>.\n"
+        f"Reason: {escape(action.reason)}\n"
+        f"Warning ID: <code>{action.id}</code>",
+        parse_mode="HTML",
+    )
+
+
+@router.message(
+    Command("warnings"),
+    ModuleEnabled("moderation"),
+    PermissionRequired(Permission.VIEW_MOD_LOGS),
+)
+async def warnings_command(
+    message: Message,
+    permission_service,
+    moderation_service,
+):
+    target_id, _ = await resolve_target(message, permission_service)
+    if not target_id:
+        await smart_reply(message, "Usage: /warnings @user")
+        return
+
+    warnings = await moderation_service.warnings(
+        message.chat.id,
+        target_id,
+    )
+    lines = [
+        f"<b>User:</b> <code>{target_id}</code>",
+        f"<b>Warnings:</b> {len(warnings)}",
+        "",
+    ]
+    lines.extend(
+        (
+            f"{index}. {escape(item.reason)} (<code>{item.id}</code>)"
+            for index, item in enumerate(warnings, start=1)
+        )
+        if warnings
+        else ["No active warnings."]
+    )
+    await smart_reply(message, "\n".join(lines), parse_mode="HTML")
+
+
+@router.message(
+    Command("warnremove"),
+    ModuleEnabled("moderation"),
+    PermissionRequired(Permission.WARN_USERS),
+)
+async def warnremove_command(message: Message, moderation_service):
+    parts = (message.text or "").split(maxsplit=1)
+    if len(parts) != 2:
+        await smart_reply(message, "Usage: /warnremove <id>")
+        return
+    removed = await moderation_service.remove_warning(
+        message.chat.id,
+        parts[1].strip(),
+        message.from_user.id,
+    )
+    await smart_reply(
+        message,
+        "✅ Warning removed."
+        if removed
+        else "No active warning with that ID was found.",
+    )
+
+
+def automod_status_text(config) -> str:
+    rules = "\n".join(
+        f"• {name}: {'on' if enabled else 'off'}"
+        for name, enabled in config.rules.items()
+    )
+    return (
+        f"<b>Automod:</b> {'enabled' if config.enabled else 'disabled'}\n\n"
+        f"<b>Rules</b>\n{rules}\n\n"
+        f"Blocked words: {len(config.blocked_words)}\n"
+        f"Escalation: mute after {config.warning_threshold} warnings"
+    )
+
+
+@router.message(
+    Command("automod"),
+    ModuleEnabled("moderation"),
+    PermissionRequired(Permission.MANAGE_MODERATION),
+)
+async def automod_command(message: Message, automod_service):
+    parts = (message.text or "").split()
+    chat_id = message.chat.id
+
+    if len(parts) == 1 or parts[1].lower() == "status":
+        config = await automod_service.get_config(chat_id, refresh=True)
+        await smart_reply(
+            message,
+            automod_status_text(config),
+            parse_mode="HTML",
+        )
+        return
+
+    operation = parts[1].lower()
+    if operation in {"on", "off"} and len(parts) == 2:
+        config = await automod_service.set_enabled(
+            chat_id,
+            operation == "on",
+        )
+        await smart_reply(message, automod_status_text(config), parse_mode="HTML")
+        return
+
+    if operation == "rule" and len(parts) == 4:
+        state = parts[3].lower()
+        if state not in {"on", "off"}:
+            await smart_reply(message, "Rule state must be on or off.")
+            return
+        try:
+            config = await automod_service.set_rule(
+                chat_id,
+                parts[2].lower(),
+                state == "on",
+            )
+        except ValueError:
+            await smart_reply(
+                message,
+                "Rules: flood, repeat, links, caps, words.",
+            )
+            return
+        await smart_reply(message, automod_status_text(config), parse_mode="HTML")
+        return
+
+    if operation == "word" and len(parts) >= 3:
+        action = parts[2].lower()
+        if action == "list" and len(parts) == 3:
+            config = await automod_service.get_config(chat_id, refresh=True)
+            words = ", ".join(config.blocked_words) or "None"
+            await smart_reply(message, f"Blocked words: {words}")
+            return
+
+        word = " ".join(parts[3:])
+        if action in {"add", "remove"} and word:
+            try:
+                changed = (
+                    await automod_service.add_word(chat_id, word)
+                    if action == "add"
+                    else await automod_service.remove_word(chat_id, word)
+                )
+            except ValueError as error:
+                await smart_reply(message, str(error))
+                return
+            await smart_reply(
+                message,
+                "✅ Blocked-word list updated."
+                if changed
+                else "No change was needed.",
+            )
+            return
+
+    await smart_reply(
+        message,
+        "Automod usage:\n"
+        "• /automod [status|on|off]\n"
+        "• /automod rule <flood|repeat|links|caps|words> <on|off>\n"
+        "• /automod word <add|remove|list> [word]",
     )
     await smart_reply(
         message,
@@ -159,6 +354,42 @@ async def mute_command(
         f"🔇 Muted <code>{target_id}</code> until "
         f"<code>{action.expires_at.isoformat()}</code>.\n"
         f"Reason: {escape(action.reason)}",
+        parse_mode="HTML",
+    )
+
+
+@router.message(
+    Command("unmute"),
+    ModuleEnabled("moderation"),
+    PermissionRequired(Permission.MUTE_USERS),
+)
+async def unmute_command(
+    message: Message,
+    permission_service,
+    moderation_service,
+):
+    target_id, _ = await resolve_target(message, permission_service)
+    if not target_id:
+        await smart_reply(message, "Usage: /unmute @user")
+        return
+    if await reject_protected_target(
+        message, permission_service, target_id
+    ):
+        return
+
+    try:
+        await moderation_service.unmute(
+            message.chat.id,
+            target_id,
+            message.from_user.id,
+        )
+    except (TelegramBadRequest, TelegramForbiddenError) as error:
+        await telegram_failure(message, error)
+        return
+
+    await smart_reply(
+        message,
+        f"🔊 Unmuted <code>{target_id}</code>.",
         parse_mode="HTML",
     )
 
@@ -283,3 +514,16 @@ async def purge_command(message: Message, moderation_service):
         f"in <b>{elapsed:.2f}s</b>.",
         parse_mode="HTML",
     )
+
+
+@router.message(ModuleEnabled("moderation"))
+async def inspect_for_automod(
+    message: Message,
+    permission_service,
+    automod_service,
+):
+    if automod_service:
+        await automod_service.inspect_message(
+            message,
+            permission_service,
+        )

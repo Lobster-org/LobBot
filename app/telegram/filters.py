@@ -70,17 +70,27 @@ class PermissionRequired(BaseFilter):
             "group",
             "supergroup",
         }:
+            await self._deny(
+                message,
+                "This command can only be used in a group.",
+            )
             return False
 
         if not message.from_user:
             return False
 
         try:
-            return await permission_service.has_permission(
+            allowed = await permission_service.has_permission(
                 chat_id=message.chat.id,
                 user_id=message.from_user.id,
                 permission=self.permission,
             )
+            if not allowed:
+                await self._deny(
+                    message,
+                    "⛔ You don't have permission to use this command.",
+                )
+            return allowed
         except Exception:
             logger.exception(
                 "Permission check failed: chat=%s user=%s permission=%s",
@@ -88,7 +98,25 @@ class PermissionRequired(BaseFilter):
                 message.from_user.id,
                 self.permission.value,
             )
+            await self._deny(
+                message,
+                "I couldn't verify your permission for this command.",
+            )
             return False
+
+    async def _deny(self, message: Message, text: str):
+        reply = getattr(message, "reply", None)
+        if not callable(reply):
+            return
+
+        try:
+            await reply(text)
+        except Exception:
+            logger.exception(
+                "Failed to send permission denial: chat=%s permission=%s",
+                getattr(message.chat, "id", None),
+                self.permission.value,
+            )
 
 
 class GroupAdmin(PermissionRequired):

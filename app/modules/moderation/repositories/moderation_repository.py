@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
+from bson import ObjectId
 from pymongo import ReturnDocument
 
-from app.database.collections import MODERATION_ACTIONS
+from app.database.collections import GROUPS, MODERATION_ACTIONS
 from app.database.repositories.base import BaseRepository
 from app.modules.moderation.config import (
     EXPIRATION_CLAIM_TIMEOUT_SECONDS,
@@ -22,6 +23,86 @@ class ModerationRepository(BaseRepository):
         result = await self.insert_one(punishment.to_document())
         punishment.id = result.inserted_id
         return punishment
+
+    async def get_warnings(
+        self,
+        chat_id: int,
+        user_id: int,
+        limit: int = 100,
+    ) -> list[Punishment]:
+        cursor = self.collection.find(
+            {
+                "chat_id": chat_id,
+                "user_id": user_id,
+                "action": PunishmentType.WARN.value,
+                "status": PunishmentStatus.ACTIVE.value,
+            }
+        ).sort("created_at", 1)
+        documents = await cursor.to_list(length=limit)
+        return [Punishment.from_document(item) for item in documents]
+
+    async def count_warnings(self, chat_id: int, user_id: int) -> int:
+        return await self.collection.count_documents(
+            {
+                "chat_id": chat_id,
+                "user_id": user_id,
+                "action": PunishmentType.WARN.value,
+                "status": PunishmentStatus.ACTIVE.value,
+            }
+        )
+
+    async def remove_warning(
+        self,
+        chat_id: int,
+        warning_id: str,
+        removed_by: int,
+    ) -> Punishment | None:
+        try:
+            object_id = ObjectId(warning_id)
+        except Exception:
+            return None
+
+        document = await self.collection.find_one_and_update(
+            {
+                "_id": object_id,
+                "chat_id": chat_id,
+                "action": PunishmentType.WARN.value,
+                "status": PunishmentStatus.ACTIVE.value,
+            },
+            {
+                "$set": {
+                    "status": PunishmentStatus.REMOVED.value,
+                    "removed_by": removed_by,
+                    "removed_at": datetime.now(timezone.utc),
+                }
+            },
+            return_document=ReturnDocument.AFTER,
+        )
+        return Punishment.from_document(document) if document else None
+
+    async def resolve_warnings(
+        self,
+        chat_id: int,
+        user_id: int,
+        resolved_by: int,
+    ) -> int:
+        result = await self.collection.update_many(
+            {
+                "chat_id": chat_id,
+                "user_id": user_id,
+                "action": PunishmentType.WARN.value,
+                "status": PunishmentStatus.ACTIVE.value,
+            },
+            {
+                "$set": {
+                    "status": PunishmentStatus.EXPIRED.value,
+                    "resolved_by": resolved_by,
+                    "resolved_at": datetime.now(timezone.utc),
+                    "resolution": "automod_escalation",
+                }
+            },
+        )
+        return result.modified_count
 
     async def remove_active_action(
         self,
@@ -117,4 +198,27 @@ class ModerationRepository(BaseRepository):
                 },
                 "$unset": {"processing_at": ""},
             },
+        )
+
+
+class AutomodRepository(BaseRepository):
+    SETTINGS_PATH = "settings.moderation.automod"
+
+    def __init__(self, database):
+        super().__init__(database, GROUPS)
+
+    async def get_config(self, chat_id: int) -> dict:
+        group = await self.find_one({"telegram_id": chat_id})
+        if not group:
+            return {}
+        return (
+            group.get("settings", {})
+            .get("moderation", {})
+            .get("automod", {})
+        )
+
+    async def set_config(self, chat_id: int, config: dict) -> None:
+        await self.update_one(
+            {"telegram_id": chat_id},
+            {"$set": {self.SETTINGS_PATH: config}},
         )
