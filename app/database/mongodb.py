@@ -1,7 +1,11 @@
+import logging
+
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo.errors import PyMongoError
 
 from app.core.config import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class MongoDB:
@@ -26,9 +30,9 @@ class MongoDB:
         # Verify the connection.
         await self.client.admin.command("ping")
 
-        print(
-            f"Connected to MongoDB: "
-            f"{settings.MONGO_DATABASE}"
+        logger.info(
+            "MongoDB connected: database=%s",
+            settings.MONGO_DATABASE,
         )
 
     async def disconnect(self):
@@ -39,7 +43,7 @@ class MongoDB:
         if self.client:
             self.client.close()
 
-            print("MongoDB connection closed.")
+            logger.info("MongoDB disconnected")
 
     def get_database(self):
         """
@@ -70,7 +74,28 @@ class MongoDB:
             unique=True,
         )
 
-        print("MongoDB indexes initialized.")
+        await database["music_cache"].create_index(
+            [
+                ("source", 1),
+                ("source_id", 1),
+            ],
+            unique=True,
+        )
+
+        await database["music_cache"].create_index(
+            "last_used"
+        )
+
+        await database["music_sessions"].create_index(
+            "chat_id",
+            unique=True,
+        )
+
+        await database["music_sessions"].create_index(
+            "updated_at"
+        )
+
+        logger.info("MongoDB indexes initialized")
 
 
 mongodb = MongoDB()

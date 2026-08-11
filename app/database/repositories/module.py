@@ -38,7 +38,7 @@ class ModuleRepository(BaseRepository):
         module_name: str,
     ):
 
-        await self.update_one(
+        return await self.update_one(
             {
                 "telegram_id": group_id
             },
@@ -55,7 +55,7 @@ class ModuleRepository(BaseRepository):
         module_name: str,
     ):
 
-        await self.update_one(
+        return await self.update_one(
             {
                 "telegram_id": group_id
             },

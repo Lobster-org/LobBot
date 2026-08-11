@@ -23,4 +23,6 @@ def create_group_document(
         "bot_status": "active",
         "settings": {},
         "enabled_modules": [],
+        "roles": {},
+        "permission_overrides": {},
     }
