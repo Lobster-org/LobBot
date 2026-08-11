@@ -21,7 +21,7 @@ from app.modules.music.module import (
 from app.modules.moderation.module import (
     ModerationModule,
 )
-from app.modules.welcome.module import WelcomeModule
+from app.modules.community.module import CommunityModule
 
 
 def register_modules(loader=module_loader):
@@ -50,7 +50,7 @@ def register_modules(loader=module_loader):
     )
 
     loader.register(
-        WelcomeModule()
+        CommunityModule()
     )
 
     loader.register(
