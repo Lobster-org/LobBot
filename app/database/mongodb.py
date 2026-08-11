@@ -19,16 +19,19 @@ class MongoDB:
         Establish a connection to MongoDB.
         """
 
-        self.client = AsyncIOMotorClient(
-            settings.MONGO_URI
-        )
+        if self.client is not None:
+            return
 
-        self.database = self.client[
-            settings.MONGO_DATABASE
-        ]
+        client = AsyncIOMotorClient(settings.MONGO_URI)
 
-        # Verify the connection.
-        await self.client.admin.command("ping")
+        try:
+            await client.admin.command("ping")
+        except Exception:
+            client.close()
+            raise
+
+        self.client = client
+        self.database = client[settings.MONGO_DATABASE]
 
         logger.info(
             "MongoDB connected: database=%s",
@@ -42,7 +45,8 @@ class MongoDB:
 
         if self.client:
             self.client.close()
-
+            self.client = None
+            self.database = None
             logger.info("MongoDB disconnected")
 
     def get_database(self):

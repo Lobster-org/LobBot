@@ -1,6 +1,9 @@
-from app.database.mongodb import mongodb
+from app.core.container import container
 
 
 def get_database():
 
-    return mongodb.get_database()
+    if container.database is None:
+        raise RuntimeError("Database is not initialized")
+
+    return container.database
