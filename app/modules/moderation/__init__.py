@@ -1,0 +1,1 @@
+"""LobBot moderation module."""

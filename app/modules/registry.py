@@ -18,6 +18,9 @@ from app.modules.management.module import (
 from app.modules.music.module import (
     MusicModule,
 )
+from app.modules.moderation.module import (
+    ModerationModule,
+)
 
 
 def register_modules(loader=module_loader):
@@ -43,6 +46,10 @@ def register_modules(loader=module_loader):
 
     loader.register(
         MusicModule()
+    )
+
+    loader.register(
+        ModerationModule()
     )
 
     return loader
