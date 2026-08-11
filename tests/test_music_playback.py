@@ -179,3 +179,27 @@ async def test_stop_clears_queue_and_leaves_voice_chat():
     assert queues.get(chat_id).items == []
     assert queues.get(chat_id).is_playing is False
     assert voice.stopped == [chat_id]
+
+
+async def test_shutdown_cancels_tasks_and_leaves_active_calls():
+    chat_id = -1001
+    queues = QueueService()
+    voice = FakeVoiceService()
+    playback = PlaybackService(queues, voice)
+
+    await queues.add(
+        chat_id,
+        QueueItem(
+            track=Track(
+                title="Shutdown Song",
+                file_path="/tmp/shutdown.webm",
+            ),
+            requested_by=42,
+        ),
+    )
+
+    await playback.shutdown()
+
+    assert playback.tasks == {}
+    assert voice.stopped == [chat_id]
+    assert queues.get(chat_id).items
