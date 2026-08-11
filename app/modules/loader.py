@@ -1,4 +1,9 @@
+import logging
+
 from app.modules.base import BaseModule
+
+
+logger = logging.getLogger(__name__)
 
 
 class ModuleLoader:
@@ -41,21 +46,45 @@ class ModuleLoader:
 
         for module in self.modules.values():
 
-            print(
-                f"Loading module: "
-                f"{module.name}"
+            logger.info(
+                "Loading module: name=%s version=%s",
+                module.name,
+                module.version,
             )
 
-            await module.setup(
-                dispatcher
-            )
+            try:
+                await module.setup(
+                    dispatcher
+                )
 
-            await module.startup()
+                await module.startup()
+            except Exception:
+                logger.exception(
+                    "Module startup failed: name=%s",
+                    module.name,
+                )
+                raise
+
+            logger.info(
+                "Loaded module: name=%s",
+                module.name,
+            )
 
     async def shutdown(self):
 
         for module in self.modules.values():
 
-            await module.shutdown()
-            
+            try:
+                await module.shutdown()
+            except Exception:
+                logger.exception(
+                    "Module shutdown failed: name=%s",
+                    module.name,
+                )
+            else:
+                logger.info(
+                    "Module stopped: name=%s",
+                    module.name,
+                )
+
 module_loader = ModuleLoader()
