@@ -192,7 +192,15 @@ class PermissionService:
             normalized
         )
 
-        if not user:
-            return None
+        if user:
+            return int(user["telegram_id"])
 
-        return int(user["telegram_id"])
+        resolver = getattr(
+            self.membership_provider,
+            "resolve_user_id",
+            None,
+        )
+        if resolver:
+            return await resolver(normalized)
+
+        return None
