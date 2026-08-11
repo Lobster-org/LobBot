@@ -1,0 +1,5 @@
+TRACK_QUEUED = "music.track_queued"
+TRACK_STARTED = "music.track_started"
+TRACK_FINISHED = "music.track_finished"
+TRACK_SKIPPED = "music.track_skipped"
+PLAYBACK_STOPPED = "music.playback_stopped"
