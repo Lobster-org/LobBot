@@ -20,24 +20,29 @@ from app.modules.music.module import (
 )
 
 
-def register_modules():
+def register_modules(loader=module_loader):
 
-    module_loader.register(
+    if loader.all():
+        return loader
+
+    loader.register(
         StartModule()
     )
 
-    module_loader.register(
+    loader.register(
         HelpModule()
     )
 
-    module_loader.register(
+    loader.register(
         GroupModule()
     )
 
-    module_loader.register(
+    loader.register(
         ManagementModule()
     )
 
-    module_loader.register(
+    loader.register(
         MusicModule()
     )
+
+    return loader
