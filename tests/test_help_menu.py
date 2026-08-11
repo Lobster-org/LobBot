@@ -1,4 +1,4 @@
-from app.modules.help.help import COMMANDS_BY_NAME
+from app.modules.help.help import COMMANDS_BY_NAME, command_text
 from app.modules.help.keyboards import (
     COMMANDS_PER_PAGE,
     help_keyboard,
@@ -22,9 +22,29 @@ def test_help_catalog_contains_registered_commands():
         "resume",
         "skip",
         "stop",
+        "mute",
+        "ban",
+        "unban",
+        "purge",
     }
 
     assert set(COMMANDS_BY_NAME) == expected
+
+
+def test_every_help_command_has_usage_and_description():
+    assert all(
+        command.usage.strip() and command.description.strip()
+        for command in COMMANDS_BY_NAME.values()
+    )
+
+
+def test_help_details_escape_command_placeholders_for_html():
+    mute_help = command_text(COMMANDS_BY_NAME["mute"])
+    enable_help = command_text(COMMANDS_BY_NAME["enable"])
+
+    assert "&lt;10s|5m|2h|7d&gt;" in mute_help
+    assert "&lt;module&gt;" in enable_help
+    assert "<10s|5m|2h|7d>" not in mute_help
 
 
 def test_help_keyboard_is_five_by_three():
