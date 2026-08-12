@@ -6,6 +6,7 @@ from app.modules.music.handler import router
 from app.modules.music.services.playback_service import PlaybackService
 from app.modules.music.state import music_state
 from app.telegram.voice.events import VoiceEventHandler
+from app.telegram.voice.membership import VoiceAccountMembershipService
 
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,12 @@ class MusicModule(BaseModule):
             playback_service=music_state.player,
         )
         music_state.voice_events.register()
+        identity = await container.voice_lifecycle.client.get_me()
+        music_state.voice_membership = VoiceAccountMembershipService(
+            container.bot,
+            container.voice_lifecycle.client,
+            identity,
+        )
         await music_state.player.restore()
         logger.info("Music runtime ready")
 

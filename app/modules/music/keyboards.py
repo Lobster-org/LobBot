@@ -51,3 +51,37 @@ def playback_controls_keyboard() -> InlineKeyboardMarkup:
             ],
         ]
     )
+
+
+def invite_voice_account_keyboard(username: str | None) -> InlineKeyboardMarkup:
+    rows = [[
+        InlineKeyboardButton(
+            text="➕ Invite LobMusic",
+            callback_data="music:invite_voice",
+        )
+    ]]
+    if username:
+        rows[0].append(
+            InlineKeyboardButton(
+                text="👤 Open LobMusic",
+                url=f"https://t.me/{username}",
+            )
+        )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def promote_voice_account_keyboard(username: str | None) -> InlineKeyboardMarkup:
+    rows = [[
+        InlineKeyboardButton(
+            text="🛡 Prepare LobMusic",
+            callback_data="music:promote_voice",
+        )
+    ]]
+    if username:
+        rows[0].append(
+            InlineKeyboardButton(
+                text="👤 Open LobMusic",
+                url=f"https://t.me/{username}",
+            )
+        )
+    return InlineKeyboardMarkup(inline_keyboard=rows)

@@ -7,7 +7,7 @@ from aiogram.types import (
     Message
 )
 
-from app.telegram.filters import ModuleEnabled
+from app.telegram.filters import CallbackModuleEnabled, ModuleEnabled
 
 from app.modules.music.models.queue import QueueItem
 
@@ -16,7 +16,9 @@ from app.modules.music.state import (
 )
 
 from app.modules.music.keyboards import (
+    invite_voice_account_keyboard,
     playback_controls_keyboard,
+    promote_voice_account_keyboard,
     search_results_keyboard,
 )
 
@@ -24,6 +26,35 @@ from app.modules.music.keyboards import (
 logger = logging.getLogger(__name__)
 
 router = Router()
+
+
+async def require_voice_account_ready(message: Message) -> bool:
+    membership = music_state.voice_membership
+    if not membership:
+        await message.reply("❌ The LobMusic voice account is not ready.")
+        return False
+
+    readiness = await membership.get_readiness(message.chat.id)
+    if not readiness.is_member:
+        await message.reply(
+            f"🎙 <b>{membership.display_name}</b> is not in this group.\n\n"
+            "LobMusic is required to join the Telegram voice chat and stream audio. "
+            "Add it before using <code>/play</code>.",
+            parse_mode="HTML",
+            reply_markup=invite_voice_account_keyboard(membership.username),
+        )
+        return False
+    if not readiness.can_manage_voice_chats:
+        await message.reply(
+            f"🛡 <b>{membership.display_name}</b> is in this group, but cannot "
+            "start or manage its voice chat.\n\n"
+            "Promote LobMusic and grant <b>Manage Video Chats</b>, then try "
+            "<code>/play</code> again.",
+            parse_mode="HTML",
+            reply_markup=promote_voice_account_keyboard(membership.username),
+        )
+        return False
+    return True
 
 @router.message(
     Command("play"),
@@ -67,10 +98,16 @@ async def play_command(
 
         return
 
+    if message.chat.type not in {"group", "supergroup"}:
+        await message.reply("🎵 Music playback is only available in groups.")
+        return
+
+    if not await require_voice_account_ready(message):
+        return
+
     status_message = await message.reply(
         "🔎 Searching..."
     )
-
     service = music_state.music_service
 
     if not service:
@@ -171,6 +208,101 @@ async def play_command(
 
 
 @router.callback_query(
+    F.data == "music:invite_voice",
+    CallbackModuleEnabled("music"),
+)
+async def invite_voice_account(callback: CallbackQuery):
+    if not callback.message:
+        await callback.answer(
+            "This invitation is no longer available.",
+            show_alert=True,
+        )
+        return
+    membership = music_state.voice_membership
+    if not membership:
+        await callback.answer("LobMusic is not ready.", show_alert=True)
+        return
+    await callback.answer("Inviting LobMusic…")
+    try:
+        joined = await membership.join(callback.message.chat.id)
+    except Exception:
+        logger.exception(
+            "Could not invite voice account: chat=%s user=%s",
+            callback.message.chat.id,
+            callback.from_user.id,
+        )
+        await callback.message.edit_text(
+            f"❌ I couldn't add <b>{membership.display_name}</b>.\n\n"
+            "Make sure LobBot is an administrator with permission to invite "
+            "users, and make sure LobMusic is not banned from this group. "
+            "You can also add the account manually from its Telegram profile.",
+            parse_mode="HTML",
+            reply_markup=invite_voice_account_keyboard(membership.username),
+        )
+        return
+    try:
+        promoted = await membership.promote(callback.message.chat.id)
+    except Exception:
+        logger.exception(
+            "Voice account joined but could not be promoted: chat=%s user=%s",
+            callback.message.chat.id,
+            callback.from_user.id,
+        )
+        await callback.message.edit_text(
+            f"✅ <b>{membership.display_name}</b> is in the group, but I couldn't "
+            "grant its voice-chat permission.\n\n"
+            "Please promote LobMusic manually and enable <b>Manage Video Chats</b>.",
+            parse_mode="HTML",
+            reply_markup=promote_voice_account_keyboard(membership.username),
+        )
+        return
+    await callback.message.edit_text(
+        f"✅ <b>{membership.display_name}</b> "
+        f"{'joined the group' if joined else 'is already in the group'} and "
+        f"{'was prepared' if promoted else 'is ready'} for voice chat.\n\n"
+        "Music is ready—send <code>/play &lt;song name&gt;</code> again.",
+        parse_mode="HTML",
+    )
+
+
+@router.callback_query(
+    F.data == "music:promote_voice",
+    CallbackModuleEnabled("music"),
+)
+async def promote_voice_account(callback: CallbackQuery):
+    if not callback.message:
+        await callback.answer("This setup request expired.", show_alert=True)
+        return
+    membership = music_state.voice_membership
+    if not membership:
+        await callback.answer("LobMusic is not ready.", show_alert=True)
+        return
+    await callback.answer("Preparing LobMusic…")
+    try:
+        changed = await membership.promote(callback.message.chat.id)
+    except Exception:
+        logger.exception(
+            "Could not promote voice account: chat=%s user=%s",
+            callback.message.chat.id,
+            callback.from_user.id,
+        )
+        await callback.message.edit_text(
+            f"❌ I couldn't prepare <b>{membership.display_name}</b>.\n\n"
+            "Make sure LobBot can add administrators, or manually promote "
+            "LobMusic with <b>Manage Video Chats</b>.",
+            parse_mode="HTML",
+            reply_markup=promote_voice_account_keyboard(membership.username),
+        )
+        return
+    await callback.message.edit_text(
+        f"✅ <b>{membership.display_name}</b> "
+        f"{'now has' if changed else 'already has'} voice-chat permission.\n\n"
+        "Music is ready—send <code>/play &lt;song name&gt;</code> again.",
+        parse_mode="HTML",
+    )
+
+
+@router.callback_query(
     F.data.startswith("music:select:")
 )
 async def select_search_result(
@@ -234,6 +366,13 @@ async def select_search_result(
         return
 
     track = session.tracks[index]
+
+    if not await require_voice_account_ready(callback.message):
+        await callback.answer(
+            "LobMusic must be prepared before this song can play.",
+            show_alert=True,
+        )
+        return
 
     # Claim the selection before the first await so a
     # double-click cannot enqueue the same result twice.

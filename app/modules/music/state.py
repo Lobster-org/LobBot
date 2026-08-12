@@ -13,6 +13,7 @@ class MusicState:
         self.music_service = None
         self.player = None
         self.voice_events = None
+        self.voice_membership = None
 
     def configure(
         self,
@@ -32,6 +33,7 @@ class MusicState:
         self.music_service = None
         self.player = None
         self.voice_events = None
+        self.voice_membership = None
 
 
 music_state = MusicState()
