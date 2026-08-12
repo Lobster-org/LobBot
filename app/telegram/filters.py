@@ -47,10 +47,38 @@ class ModuleEnabled(BaseFilter):
             database
         )
 
-        return await service.is_enabled(
+        enabled = await service.is_enabled(
             message.chat.id,
             self.module_name
         )
+
+        if not enabled and self._is_command(message):
+            await self._notify_disabled(message)
+
+        return enabled
+
+    @staticmethod
+    def _is_command(message: Message) -> bool:
+        text = getattr(message, "text", None)
+        return bool(text and text.lstrip().startswith("/"))
+
+    async def _notify_disabled(self, message: Message):
+        reply = getattr(message, "reply", None)
+        if not callable(reply):
+            return
+        try:
+            await reply(
+                f"This command isn't available because the "
+                f"{self.module_name} module is not enabled.\n"
+                f"An administrator can enable it with "
+                f"/enable {self.module_name}."
+            )
+        except Exception:
+            logger.exception(
+                "Failed to send module-disabled notice: chat=%s module=%s",
+                getattr(message.chat, "id", None),
+                self.module_name,
+            )
 
 class PermissionRequired(BaseFilter):
 
@@ -179,7 +207,9 @@ class CallbackModuleEnabled(BaseFilter):
         )
         if not enabled:
             await callback.answer(
-                "This module is no longer enabled.",
+                f"The {self.module_name} module is not enabled. "
+                f"An administrator can enable it with "
+                f"/enable {self.module_name}.",
                 show_alert=True,
             )
         return enabled
