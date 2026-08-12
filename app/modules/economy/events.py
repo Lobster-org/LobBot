@@ -1,0 +1,10 @@
+XP_GAINED = "economy.xp_gained"
+LEVEL_UP = "economy.level_up"
+COINS_CHANGED = "economy.coins_changed"
+DAILY_CLAIMED = "economy.daily_claimed"
+ACHIEVEMENT_UNLOCKED = "economy.achievement_unlocked"
+TRANSFER_COMPLETED = "economy.transfer_completed"
+GAME_REWARDED = "economy.game_rewarded"
+
+GAME_COMPLETED = "game.completed"
+GAME_WON = "game.won"
