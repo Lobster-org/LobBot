@@ -119,6 +119,26 @@ class MongoDB:
             unique=True,
         )
 
+        await database["economy_profiles"].create_index(
+            [("chat_id", 1), ("user_id", 1)], unique=True,
+        )
+        for field in ("xp", "coins", "games_won"):
+            await database["economy_profiles"].create_index(
+                [("chat_id", 1), (field, -1)],
+            )
+        await database["economy_transactions"].create_index(
+            [("chat_id", 1), ("user_id", 1), ("created_at", -1)],
+        )
+        await database["economy_settings"].create_index(
+            "chat_id", unique=True,
+        )
+        await database["economy_bets"].create_index(
+            [("match_id", 1), ("user_id", 1)], unique=True,
+        )
+        await database["economy_bets"].create_index(
+            [("status", 1), ("created_at", 1)],
+        )
+
         await database["community_verifications"].create_index(
             [
                 ("status", 1),
