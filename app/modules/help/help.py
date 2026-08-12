@@ -145,6 +145,23 @@ COMMANDS = (
     CommandHelp("clearrules", "/clearrules", "Remove the current group's configured rules."),
     CommandHelp("verification", "/verification on|off", "Require newcomers to press their personal Verify button before chatting."),
     CommandHelp("servicecleanup", "/servicecleanup on|off", "Delete Telegram join and leave service messages after community processing."),
+    CommandHelp("games", "/games", "List the games available in the current group."),
+    CommandHelp("cancelgame", "/cancelgame", "Cancel your active game. Either participant may cancel a multiplayer RPS match."),
+    CommandHelp("coinflip", "/coinflip [heads|tails]", "Flip a coin, optionally predicting the outcome."),
+    CommandHelp("guess", "/guess [number]", "Start a 1–20 number game or submit a guess. You have five attempts."),
+    CommandHelp("rps", "/rps [@user]", "Play a cancellable 5, 10, or 20-round match. Multiplayer supports Normal or virtual-coin Bets mode."),
+    CommandHelp("bet", "/bet <amount>", "Lock a custom virtual-coin stake into your active RPS betting match. Use the match button to go all in."),
+    CommandHelp("tictactoe", "/tictactoe [@user]", "Play a cancellable 5, 10, or 20-round Tic-Tac-Toe match against LobBot or another member in one updating message."),
+    CommandHelp("connect4", "/connect4 [@user]", "Play a cancellable 5, 10, or 20-round Connect 4 match against LobBot or another member in one updating message."),
+    CommandHelp("hangman", "/hangman @user", "Invite a player, then privately submit a secret phrase that remains hidden until the single-message game ends."),
+    CommandHelp("hangmansecret", "/hangmansecret <code> <phrase>", "Privately submit the phrase, then optionally provide a hint that appears when the guesser reaches three attempts."),
+    CommandHelp("trivia", "/trivia", "Choose a category with inline buttons, then play 5, 10, or 20 fresh API-backed trivia rounds in one updating message."),
+    CommandHelp("profile", "/profile", "Show your group-scoped XP, level, coins, game statistics, and daily streak."),
+    CommandHelp("balance", "/balance", "Show your coin balance in this group."),
+    CommandHelp("level", "/level", "Show your current level and XP."),
+    CommandHelp("daily", "/daily", "Claim your approximately 24-hour coin and XP reward."),
+    CommandHelp("leaderboard", "/leaderboard [xp|coins|wins]", "Show a top-ten group leaderboard. XP is the default."),
+    CommandHelp("pay", "/pay @user <amount>", "Transfer group coins to another member; reply targets are also supported."),
 )
 
 
