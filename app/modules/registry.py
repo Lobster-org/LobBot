@@ -22,6 +22,8 @@ from app.modules.moderation.module import (
     ModerationModule,
 )
 from app.modules.community.module import CommunityModule
+from app.modules.economy.module import EconomyModule
+from app.modules.games.module import GamesModule
 
 
 def register_modules(loader=module_loader):
@@ -51,6 +53,14 @@ def register_modules(loader=module_loader):
 
     loader.register(
         CommunityModule()
+    )
+
+    loader.register(
+        EconomyModule()
+    )
+
+    loader.register(
+        GamesModule()
     )
 
     loader.register(
