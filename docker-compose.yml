@@ -1,47 +1,64 @@
-version: "3.9"
+name: lobbot
 
 services:
-  mongo:
-    image: mongo:7.0
-    container_name: lobbot-mongo
-    restart: always
-    ports:
-      - "27017:27017"
+  mongodb:
+    image: mongo:8
+    restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: lobadmin
-      MONGO_INITDB_ROOT_PASSWORD: secret123
-      MONGO_INITDB_DATABASE: lobbot
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-lobadmin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in .env}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-lobbot}
     volumes:
-      - mongo_data:/data/db
+      - mongodb_data:/data/db
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet
+          --username "$${MONGO_INITDB_ROOT_USERNAME}"
+          --password "$${MONGO_INITDB_ROOT_PASSWORD}"
+          --authenticationDatabase admin
+          --eval "db.adminCommand('ping').ok" | grep 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
 
   bot:
     build:
       context: .
-      dockerfile: DockerFile
-    container_name: lobbot-bot
-    restart: always
-    depends_on:
-      - mongo
+      dockerfile: Dockerfile
+    image: lobbot:local
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
     environment:
-      # MongoDB connection string
-      MONGO_URL: "mongodb://lobadmin:secret123@mongo:27017/lobbot?authSource=admin"
-      DB_NAME: "lobbot"
-
-      # Telegram credentials
-      API_ID: "${API_ID}"
-      API_HASH: "${API_HASH}"
-      BOT_TOKEN: "${BOT_TOKEN}"
-
-      LLM_MODEL: "/models/qwen2.5-1.5b-instruct.Q4_K_M.gguf"
-      LLM_CTX: "2048"
-      LLM_THREADS: "0"
-      LLM_TEMP: "0.6"
-      LLM_MAX_TOKENS: "256"
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?Set TELEGRAM_BOT_TOKEN in .env}
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID:?Set TELEGRAM_API_ID in .env}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH:?Set TELEGRAM_API_HASH in .env}
+      MONGO_URI: ${DOCKER_MONGO_URI:?Set DOCKER_MONGO_URI in .env}
+      MONGO_DATABASE: ${MONGO_DATABASE:-lobbot}
+      REDIS_URI: ${REDIS_URI:-redis://unused:6379/0}
+      VOICE_SESSION_NAME: /app/data/sessions/lobbot_voice
+      MUSIC_STORAGE_PATH: /app/storage/music
+    depends_on:
+      mongodb:
+        condition: service_healthy
     volumes:
-      - .:/app
-      - ./models:/models
-    working_dir: /app
-    # command: ["python", ".bot/main.py"]
+      - voice_sessions:/app/data/sessions
+      - music_cache:/app/storage/music
+      - bot_logs:/app/logs
+    stop_grace_period: 30s
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
-  mongo_data:
+  mongodb_data:
+  voice_sessions:
+  music_cache:
+  bot_logs:

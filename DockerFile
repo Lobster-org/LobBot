@@ -1,19 +1,46 @@
-FROM python:3.13-slim
+FROM python:3.13-slim AS builder
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /build
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        build-essential \
+        gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --upgrade pip \
+    && /opt/venv/bin/pip install -r requirements.txt
+
+
+FROM python:3.13-slim AS runtime
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends \
+        ca-certificates \
+        ffmpeg \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system lobbot \
+    && useradd --system --gid lobbot --create-home lobbot
 
 WORKDIR /app
 
-# COPY requirements.txt .
-# RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /opt/venv /opt/venv
+COPY --chown=lobbot:lobbot . .
 
-# Build deps for TgCrypto / llama-cpp-python (CPU)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential cmake gcc g++ \
- && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /app/data/sessions /app/logs /app/storage/music \
+    && chown -R lobbot:lobbot /app/data /app/logs /app/storage
 
-COPY requirements.txt .
-RUN python -m pip install --upgrade pip \
- && pip install -r requirements.txt
+USER lobbot
 
-COPY . .
+STOPSIGNAL SIGTERM
 
-CMD ["python", "bot/main.py"]
+CMD ["python", "-m", "app.main"]
