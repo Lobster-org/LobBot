@@ -43,6 +43,23 @@ def test_help_catalog_contains_registered_commands():
         "clearrules",
         "verification",
         "servicecleanup",
+        "games",
+        "cancelgame",
+        "coinflip",
+        "guess",
+        "rps",
+        "bet",
+        "tictactoe",
+        "connect4",
+        "hangman",
+        "hangmansecret",
+        "trivia",
+        "profile",
+        "balance",
+        "level",
+        "daily",
+        "leaderboard",
+        "pay",
     }
 
     assert set(COMMANDS_BY_NAME) == expected
