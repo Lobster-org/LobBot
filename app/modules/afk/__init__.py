@@ -1,0 +1,1 @@
+"""AFK and BRB module."""
