@@ -10,6 +10,8 @@ services:
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-lobbot}
     volumes:
       - mongodb_data:/data/db
+    ports:
+      - "127.0.0.1:27017:27017"
     healthcheck:
       test:
         - CMD-SHELL
@@ -26,6 +28,31 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    restart: unless-stopped
+    environment:
+      LT_LOAD_ONLY: ${LIBRETRANSLATE_LANGUAGES:-en,es,fr,de,it,pt,ar,ja,ko,zh,ru}
+      LT_DISABLE_WEB_UI: "true"
+      LT_DISABLE_FILES_TRANSLATION: "true"
+      LT_UPDATE_MODELS: "true"
+    volumes:
+      - libretranslate_data:/home/libretranslate/.local
+    ports:
+      - "127.0.0.1:5000:5000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:5000/languages', timeout=5)"
+      interval: 10s
+      timeout: 8s
+      retries: 60
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+
   bot:
     build:
       context: .
@@ -37,17 +64,23 @@ services:
       - .env
     environment:
       ENVIRONMENT: ${ENVIRONMENT:-production}
+      RUNNING_IN_DOCKER: "true"
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?Set TELEGRAM_BOT_TOKEN in .env}
       TELEGRAM_API_ID: ${TELEGRAM_API_ID:?Set TELEGRAM_API_ID in .env}
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH:?Set TELEGRAM_API_HASH in .env}
-      MONGO_URI: ${DOCKER_MONGO_URI:?Set DOCKER_MONGO_URI in .env}
+      MONGO_URI: mongodb://${MONGO_ROOT_USERNAME:-lobadmin}:${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in .env}@mongodb:27017/${MONGO_DATABASE:-lobbot}?authSource=admin
       MONGO_DATABASE: ${MONGO_DATABASE:-lobbot}
       REDIS_URI: ${REDIS_URI:-redis://unused:6379/0}
       VOICE_SESSION_NAME: /app/data/sessions/lobbot_voice
       MUSIC_STORAGE_PATH: /app/storage/music
+      LIBRETRANSLATE_URL: http://libretranslate:5000
+      LIBRETRANSLATE_API_KEY: ${LIBRETRANSLATE_API_KEY:-}
+      TRANSLATION_DEFAULT_LANGUAGE: ${TRANSLATION_DEFAULT_LANGUAGE:-en}
     depends_on:
       mongodb:
+        condition: service_healthy
+      libretranslate:
         condition: service_healthy
     volumes:
       - voice_sessions:/app/data/sessions
@@ -62,3 +95,4 @@ volumes:
   voice_sessions:
   music_cache:
   bot_logs:
+  libretranslate_data:
