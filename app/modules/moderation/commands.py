@@ -10,6 +10,7 @@ from aiogram.exceptions import (
 )
 from aiogram import F
 from aiogram.filters import Command
+from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.types import CallbackQuery, Message
 
 from app.core.permissions import Permission
@@ -723,3 +724,6 @@ async def inspect_for_automod(
             message,
             permission_service,
         )
+    # Automod observes messages but must not consume updates intended for
+    # independently registered feature modules.
+    raise SkipHandler
