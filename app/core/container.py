@@ -3,6 +3,7 @@ from typing import Any
 
 from app.core.config import settings
 from app.core.events import EventBus, event_bus
+from app.core.http import HttpClient
 from app.database.mongodb import MongoDB, mongodb
 
 
@@ -17,6 +18,7 @@ class AppContainer:
     bot: Any = None
     voice_lifecycle: Any = None
     voice_service: Any = None
+    http_client: HttpClient | None = None
 
     def set_database(self, database: Any) -> None:
         self.database = database
@@ -26,6 +28,7 @@ class AppContainer:
         self.bot = None
         self.voice_lifecycle = None
         self.voice_service = None
+        self.http_client = None
 
 
 def create_container() -> AppContainer:

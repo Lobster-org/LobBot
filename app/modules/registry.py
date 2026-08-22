@@ -24,6 +24,11 @@ from app.modules.moderation.module import (
 from app.modules.community.module import CommunityModule
 from app.modules.economy.module import EconomyModule
 from app.modules.games.module import GamesModule
+from app.modules.media.module import MediaModule
+from app.modules.dictionary.module import DictionaryModule
+from app.modules.translation.module import TranslationModule
+from app.modules.afk.module import AFKModule
+from app.modules.reactions.module import ReactionsModule
 
 
 def register_modules(loader=module_loader):
@@ -66,5 +71,12 @@ def register_modules(loader=module_loader):
     loader.register(
         ModerationModule()
     )
+
+    loader.register(MediaModule())
+    loader.register(DictionaryModule())
+    loader.register(TranslationModule())
+    loader.register(ReactionsModule())
+    # Keep the catch-all AFK observer last so feature command routers run first.
+    loader.register(AFKModule())
 
     return loader
