@@ -162,6 +162,17 @@ COMMANDS = (
     CommandHelp("daily", "/daily", "Claim your approximately 24-hour coin and XP reward."),
     CommandHelp("leaderboard", "/leaderboard [xp|coins|wins]", "Show a top-ten group leaderboard. XP is the default."),
     CommandHelp("pay", "/pay @user <amount>", "Transfer group coins to another member; reply targets are also supported."),
+    CommandHelp("anime", "/anime <query>", "Search AniList for anime and browse owner-scoped paginated results."),
+    CommandHelp("manga", "/manga <query>", "Search AniList for manga and open detailed publication information."),
+    CommandHelp("manhwa", "/manhwa <query>", "Search Korean-origin comics from AniList."),
+    CommandHelp("movie", "/movie <query>", "Search TMDB for movies. Requires TMDB to be configured by the bot operator."),
+    CommandHelp("tv", "/tv <query>", "Search TMDB for television series."),
+    CommandHelp("ud", "/ud <word or phrase>", "Browse Urban Dictionary definitions, examples, votes, and source links."),
+    CommandHelp("tr", "/tr [target] <text>", "Translate text, or reply with /tr. The default target is English."),
+    CommandHelp("afk", "/afk [reason]", "Mark yourself AFK in this group. Your next normal message clears it; commands do not."),
+    CommandHelp("brb", "/brb [reason]", "Mark yourself briefly away using the same group-scoped AFK tracking."),
+    CommandHelp("mentions", "/mentions", "Show up to ten of the bounded missed mentions in your current AFK session."),
+    CommandHelp("pat", "/pat @user or reply with /pat", "Pat another member with a randomized anime reaction GIF."),
 )
 
 
