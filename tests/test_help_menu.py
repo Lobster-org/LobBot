@@ -59,8 +59,19 @@ def test_help_catalog_contains_registered_commands():
         "level",
         "daily",
         "leaderboard",
-        "pay",
-    }
+            "pay",
+            "anime",
+            "manga",
+            "manhwa",
+            "movie",
+            "tv",
+            "ud",
+            "tr",
+            "afk",
+            "brb",
+            "mentions",
+            "pat",
+        }
 
     assert set(COMMANDS_BY_NAME) == expected
 
