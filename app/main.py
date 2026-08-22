@@ -4,6 +4,7 @@ import logging
 from app.core.config import settings
 from app.core.container import container
 from app.core.logging import configure_logging
+from app.core.http import HttpClient
 from app.core.modules import module_loader
 from app.modules.registry import register_modules
 from app.telegram.client import bot, dispatcher
@@ -32,6 +33,12 @@ async def main():
         )
         container.bot = bot
 
+        container.http_client = HttpClient(
+            user_agent=settings.HTTP_USER_AGENT,
+            timeout_seconds=settings.HTTP_TIMEOUT_SECONDS,
+        )
+        await container.http_client.start()
+
         container.voice_lifecycle = VoiceLifecycle()
         await container.voice_lifecycle.start()
         container.voice_service = VoiceChatService(
@@ -58,6 +65,12 @@ async def main():
                 await container.voice_lifecycle.stop()
             except Exception:
                 logger.exception("Voice client shutdown failed")
+
+        if container.http_client:
+            try:
+                await container.http_client.close()
+            except Exception:
+                logger.exception("Shared HTTP client shutdown failed")
 
         try:
             await bot.session.close()
