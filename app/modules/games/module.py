@@ -26,7 +26,7 @@ class GamesModule(BaseModule):
         self.service = GameService(registry, GameSessionService(), container.event_bus,
                                    matches=RoundMatchService(), rewards=self.rewards)
         self.service.bets = self.bets
-        self.service.trivia = TriviaService(QUESTIONS)
+        self.service.trivia = TriviaService(QUESTIONS, http=container.http_client)
         container.event_bus.subscribe(self.rewards.EVENT, self.rewards.receive)
         container.event_bus.subscribe(self.bets.RESPONSE, self.bets.receive)
         self._cleanup_task = asyncio.create_task(self._cleanup_expired(), name="games-match-cleanup")

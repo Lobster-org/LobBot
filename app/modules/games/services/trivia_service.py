@@ -2,9 +2,6 @@ import logging
 import random
 from html import unescape
 
-import aiohttp
-
-
 logger = logging.getLogger(__name__)
 
 TRIVIA_CATEGORIES = {
@@ -24,10 +21,10 @@ TRIVIA_CATEGORIES = {
 class TriviaService:
     API_URL = "https://opentdb.com/api.php"
 
-    def __init__(self, fallback, randomizer=None, timeout_seconds=8):
+    def __init__(self, fallback, randomizer=None, http=None):
         self.fallback = fallback
         self.randomizer = randomizer or random
-        self.timeout_seconds = timeout_seconds
+        self.http = http
 
     async def questions(self, amount: int, category: str = "any") -> list[dict]:
         if category not in TRIVIA_CATEGORIES:
@@ -37,11 +34,9 @@ class TriviaService:
         if category_id is not None:
             params["category"] = category_id
         try:
-            timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(self.API_URL, params=params) as response:
-                    response.raise_for_status()
-                    payload = await response.json()
+            if self.http is None:
+                raise RuntimeError("Shared HTTP client unavailable")
+            payload = await self.http.get_json(self.API_URL, params=params)
             if payload.get("response_code") != 0 or len(payload.get("results", ())) < amount:
                 raise RuntimeError(f"Trivia API response code {payload.get('response_code')}")
             return [self._normalize(item) for item in payload["results"]]
