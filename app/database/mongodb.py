@@ -22,7 +22,7 @@ class MongoDB:
         if self.client is not None:
             return
 
-        client = AsyncIOMotorClient(settings.MONGO_URI)
+        client = AsyncIOMotorClient(settings.runtime_mongo_uri)
 
         try:
             await client.admin.command("ping")
@@ -134,6 +134,13 @@ class MongoDB:
         )
         await database["economy_bets"].create_index(
             [("match_id", 1), ("user_id", 1)], unique=True,
+        )
+
+        await database["afk_states"].create_index(
+            [("chat_id", 1), ("user_id", 1)], unique=True,
+        )
+        await database["afk_states"].create_index(
+            [("chat_id", 1), ("username", 1)],
         )
         await database["economy_bets"].create_index(
             [("status", 1), ("created_at", 1)],
