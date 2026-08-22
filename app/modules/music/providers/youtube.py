@@ -10,6 +10,19 @@ class YouTubeProvider(MusicProvider):
 
     name = "youtube"
 
+    @staticmethod
+    def _youtube_dl_options() -> dict:
+        """Options required by yt-dlp's current YouTube extractor.
+
+        YouTube now serves JavaScript challenges before issuing usable media
+        URLs.  Node is application/runtime infrastructure (also installed in
+        the Docker image), while yt-dlp-ejs supplies the challenge scripts.
+        """
+
+        return {
+            "js_runtimes": {"node": {}},
+        }
+
     async def search(
         self,
         query: str,
@@ -29,6 +42,7 @@ class YouTubeProvider(MusicProvider):
     ) -> list[Track]:
 
         options = {
+            **self._youtube_dl_options(),
             "quiet": True,
             "no_warnings": True,
             "extract_flat": True,
@@ -101,6 +115,7 @@ class YouTubeProvider(MusicProvider):
     ) -> str:
 
         options = {
+            **self._youtube_dl_options(),
             "format": "bestaudio/best",
             "outtmpl": output_path,
             "quiet": True,
